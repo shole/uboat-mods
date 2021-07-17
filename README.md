@@ -1,8 +1,9 @@
 # shole's uboat mods
-This is the source repository for my mods for the game UBOAT.
-https://store.steampowered.com/app/494840/UBOAT/
-The mods are available on steam workshop.
-https://steamcommunity.com/sharedfiles/filedetails/?id=2549989463
+This is the source repository for my mods for the game UBOAT.<br/>
+https://store.steampowered.com/app/494840/UBOAT/<br/>
+The mods are available on steam workshop.<br/>
+https://steamcommunity.com/sharedfiles/filedetails/?id=2549989463<br/>
+
 This repository contains the following mods:
 * No Discipline - disables the discipline feature from the game
 * No Discipline (Task Version) - same as above, implemented as a background task, for redundancy in case other fails

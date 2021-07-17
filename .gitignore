@@ -86,3 +86,6 @@ Assets/StreamingAssets
 Assets/Plugins/Editor/JetBrains/*
 **.blend1
 /Assets/terrain.raw*
+/Packages/
+/.idea/
+/Logs/

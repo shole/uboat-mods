@@ -16,3 +16,4 @@ This repository contains the following mods:
 6. hope stuff still works
 # license
 You're free to use this code as you please, but please don't just publish the same mod, unless I have abandoned it.
+I have a paid license for the No Discipline sailor image (https://thenounproject.com/term/sailor/2051600/), but if you redistribute it, you have to give credit to Alice Noir, under CreativeCommons license.

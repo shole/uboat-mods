@@ -1,8 +1,8 @@
 {
 	"name": "No Discipline (Task Version)",
 	"version": "1.0",
-	"description": "Discipline is always at 100%",
-	"author": null,
+	"description": "Discipline is always at 100%\nAlternative background task based version.",
+	"author": "shole",
 	"minGameVersion": null,
 	"maxGameVersion": null,
 	"assemblyName": null,

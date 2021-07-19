@@ -1,4 +1,4 @@
-{"name":"Show Decimal Distances on Map","version":"1.0","description":"Show decimals on map for ranges <5km or <3nmi 
+{"name":"Decimal Distances on Map","version":"1.0","description":"Show decimals on map for ranges <5km or <3nmi 
 
 By default the game displays all ranges above 1km or 1nmi as integers, which is really inaccurate for such a close distance.
 This mod will show distance decimals to 0.1 precision on map for ranges below 5km or 3nmi.

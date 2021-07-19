@@ -1,11 +1,19 @@
 {
 	"name": "No Discipline (Task Version)",
 	"version": "1.0",
-	"description": "Discipline is always at 100%\nAlternative background task based version.",
+	"description": "Discipline is always at 100%
+Alternative background task based version.
+
+
+This mod has been tested with B129.
+This mod works with existing savegames and does not alter game state (except set discipline to 100%).
+
+Source for this mod is available here.
+https://github.com/shole/uboat-mods",
 	"author": "shole",
 	"minGameVersion": null,
 	"maxGameVersion": null,
-	"assemblyName": null,
+	"assemblyName": "no-discipline-task",
 	"permissions": [],
-	"steamFileId": 0
+	"steamFileId": 2549991376
 }

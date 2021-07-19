@@ -2,7 +2,7 @@
 This is the source repository for my mods for the game UBOAT.<br/>
 https://store.steampowered.com/app/494840/UBOAT/<br/>
 The mods are available on steam workshop.<br/>
-https://steamcommunity.com/sharedfiles/filedetails/?id=2549989463<br/>
+https://steamcommunity.com/profiles/76561197991780592/myworkshopfiles/?appid=494840<br/>
 
 This repository contains the following mods:
 * No Discipline - disables the discipline feature from the game

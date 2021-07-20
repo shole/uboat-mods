@@ -3,7 +3,7 @@
 	"version": "1.0",
 	"description": "Discipline is always at 100%.
 
-This mod has been tested with B129.
+This mod has been tested with B128 & B129.
 This mod works with existing savegames and does not alter game state (except set discipline to 100%).
 
 Note: This breaks Discipline portion of the Patrol Tutorial.

@@ -1,16 +1,35 @@
 ManifestFileVersion: 0
-CRC: 2168552783
+CRC: 1126471077
 Hashes:
   AssetFileHash:
     serializedVersion: 2
-    Hash: bd1ea59da11d845d9eaac41d5485d9b5
+    Hash: 09efc2bd4cdcc87cfdd3770533334f29
   TypeTreeHash:
     serializedVersion: 2
-    Hash: 7dfb045827e1bc42b15dd84b6536b54c
+    Hash: 7fb000d2a07c4ece961addfc99856082
 HashAppended: 0
 ClassTypes:
+- Class: 48
+  Script: {instanceID: 0}
 - Class: 114
   Script: {fileID: 1651638530, guid: 40d4d80c2edb63f458d172b408dfec58, type: 3}
+SerializeReferenceClassIdentifiers: []
 Assets:
+- Assets/Packages/uboat.core/Shaders/Terrain/Splats/Standard-CustomMesh.shader
+- Assets/Packages/uboat.core/Shaders/Terrain/Splats/AddPass.shader
 - Assets/Packages/uboat.core/Manifest.asset
+- Assets/Packages/uboat.core/Shaders/Terrain/Splats/Specular-AddPass.shader
+- Assets/Packages/uboat.core/Shaders/Terrain/Splats/Standard-AddPass.shader
+- Assets/Packages/uboat.core/Shaders/Terrain/Splats/Standard-Base.shader
+- Assets/Packages/uboat.core/Shaders/DeepStandard/DeepStandard (Particle).shader
+- Assets/Packages/uboat.core/Shaders/DeepStandard/DeepStandard (Simple Water).shader
+- Assets/Packages/uboat.core/Shaders/Terrain/Splats/Specular-FirstPass.shader
+- Assets/Packages/uboat.core/Shaders/DeepStandard/DeepStandard (Decal).shader
+- Assets/Packages/uboat.core/Shaders/Terrain/Splats/Standard-FirstPass.shader
+- Assets/Packages/uboat.core/Shaders/Terrain/Splats/Specular-Base.shader
+- Assets/Packages/uboat.core/Shaders/Terrain/Splats/FirstPass.shader
+- Assets/Packages/uboat.core/Shaders/Terrain/Splats/Standard-Heightmap.shader
+- Assets/Packages/uboat.core/Shaders/DeepStandard/DeepStandard.shader
+- Assets/Packages/uboat.core/Shaders/DeepStandard/DeepStandard (Particle, Grazing
+  Angle Fade).shader
 Dependencies: []

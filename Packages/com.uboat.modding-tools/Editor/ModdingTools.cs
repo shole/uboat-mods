@@ -423,30 +423,30 @@ namespace UBOAT.Editor.ModdingTools
 			string targetJsonPath = Path.Combine(targetModDir, "Manifest.json");
 			string projectJsonPath = Path.Combine(projectModDir, "Manifest.json");
 
-			if (File.Exists(targetJsonPath) && File.Exists(projectJsonPath))
-			{
-				string targetJson = File.ReadAllText(targetJsonPath);
-				var targetManifest = JsonUtility.FromJson<ModManager.ModManifest>(targetJson);
-
-				if (targetManifest.steamFileId != 0)
-				{
-					string projectJson = File.ReadAllText(projectJsonPath);
-					var projectManifest = JsonUtility.FromJson<ModManager.ModManifest>(projectJson);
-
-					var asmDefFiles = Directory.GetFiles(projectModDir, "*.asmdef");
-					var assemblyDefinitionAsset = asmDefFiles.Length != 0 ? AssetDatabase.LoadAssetAtPath(asmDefFiles[0], typeof(AssemblyDefinitionAsset)) : null;
-					string assemblyName = assemblyDefinitionAsset ? assemblyDefinitionAsset.name : null;
-
-					if (targetManifest.steamFileId != projectManifest.steamFileId || (projectManifest.assemblyName != assemblyName))
-					{
-						projectManifest.steamFileId = targetManifest.steamFileId;
-						projectManifest.assemblyName = assemblyName;
-
-						projectJson = JsonUtility.ToJson(projectManifest, true);
-						File.WriteAllText(projectJsonPath, projectJson);
-					}
-				}
-			}
+			// if (File.Exists(targetJsonPath) && File.Exists(projectJsonPath))
+			// {
+			// 	string targetJson = File.ReadAllText(targetJsonPath);
+			// 	var targetManifest = JsonUtility.FromJson<ModManager.ModManifest>(targetJson);
+			//
+			// 	if (targetManifest.steamFileId != 0)
+			// 	{
+			// 		string projectJson = File.ReadAllText(projectJsonPath);
+			// 		var projectManifest = JsonUtility.FromJson<ModManager.ModManifest>(projectJson);
+			//
+			// 		var asmDefFiles = Directory.GetFiles(projectModDir, "*.asmdef");
+			// 		var assemblyDefinitionAsset = asmDefFiles.Length != 0 ? AssetDatabase.LoadAssetAtPath(asmDefFiles[0], typeof(AssemblyDefinitionAsset)) : null;
+			// 		string assemblyName = assemblyDefinitionAsset ? assemblyDefinitionAsset.name : null;
+			//
+			// 		if (targetManifest.steamFileId != projectManifest.steamFileId || (projectManifest.assemblyName != assemblyName))
+			// 		{
+			// 			projectManifest.steamFileId = targetManifest.steamFileId;
+			// 			projectManifest.assemblyName = assemblyName;
+			//
+			// 			projectJson = JsonUtility.ToJson(projectManifest, true);
+			// 			File.WriteAllText(projectJsonPath, projectJson);
+			// 		}
+			// 	}
+			// }
 		}
 
 		private static void DeleteDirectoryContentsExceptCopiedAssemblies(string targetDirectory, List<string> copiedAssemblies)

@@ -1,0 +1,19 @@
+ManifestFileVersion: 0
+CRC: 38502477
+Hashes:
+  AssetFileHash:
+    serializedVersion: 2
+    Hash: cf6e9a252db57e607b7de878b99c05ab
+  TypeTreeHash:
+    serializedVersion: 2
+    Hash: 7ded977cedb3b2409fe9b69165516f5a
+HashAppended: 0
+ClassTypes:
+- Class: 114
+  Script: {fileID: 1651638530, guid: aaeaace971825154b9e63cccd06929df, type: 3}
+- Class: 115
+  Script: {instanceID: 0}
+SerializeReferenceClassIdentifiers: []
+Assets:
+- Assets/Packages/no-fatigue/Manifest.asset
+Dependencies: []

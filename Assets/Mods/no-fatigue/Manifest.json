@@ -1,17 +1,17 @@
 {
-	"name": "No Fatigue",
-	"version": "1.0",
-	"description": "Officer energy is always at 100%.\n\nThis mod has been tested with B128-2022.1.\nThis mod works with existing savegames and does not alter game state (except set energy to 100%).\n\nSource for this mod is available here.\nhttps://github.com/shole/uboat-mods",
-	"author": "shole",
-	"supportedGameVersions": [
-		"B128",
-		"B129",
-		"B130",
-		"B131",
-		"2022.1",
-		"2024.1"
-	],
-	"assemblyName": "NoFatigue",
-	"permissions": [],
-	"steamFileId": 2567998029
+  "name": "No Fatigue",
+  "version": "2.0",
+  "description": "Officer energy is always at 100%.\n\nThis mod has been tested with 2022.1 & 2024.1.\nThis mod works with existing savegames and does not alter game state (except set energy to 100%).\n\nSource for this mod is available here.\nhttps://github.com/shole/uboat-mods",
+  "author": "shole",
+  "supportedGameVersions": [
+	"B128",
+	"B129",
+	"B130",
+	"B131",
+	"2022.1",
+    "2024.1"
+  ],
+  "assemblyName": "NoFatigue",
+  "permissions": [],
+  "steamFileId": 2567998029
 }

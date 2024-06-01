@@ -20,8 +20,9 @@ namespace UBOAT.Mods.NoFatigue {
 					Debug.Log("[NoFatigue] Applied..");
 				}
 			} else {
-				for (int i = playership.Crew.Count - 1; i >= 0; i--) {
-					PlayableCharacter playableCharacter = playership.Crew[i];
+				PlayableCharacter[] componentsInChildren = playership.GetComponentsInChildren<PlayableCharacter>(true);
+				for (int i = componentsInChildren.Length - 1; i >= 0; i--) {
+					PlayableCharacter playableCharacter = componentsInChildren[i];
 					playableCharacter.Energy = 1f;
 				}
 			}

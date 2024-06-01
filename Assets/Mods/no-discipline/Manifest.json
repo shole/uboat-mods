@@ -3,8 +3,14 @@
     "version": "1.1",
     "description": "Discipline is always at 100%.\n\nThis mod has been tested with B128 & B129.\nThis mod works with existing savegames and does not alter game state (except set discipline to 100%).\n\nNote: This breaks Discipline portion of the Patrol Tutorial.\n\nSource for this mod is available here.\nhttps://github.com/shole/uboat-mods",
     "author": "shole",
-    "minGameVersion": "",
-    "maxGameVersion": "",
+	"supportedGameVersions": [
+		"B128",
+		"B129",
+		"B130",
+		"B131",
+		"2022.1",
+		"2024.1"
+	],
     "assemblyName": "NoDiscipline",
     "permissions": [],
     "steamFileId": 2549989463

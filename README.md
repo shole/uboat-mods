@@ -8,8 +8,6 @@ This repository contains the following mods:
 * No Fatigue - disables the fatigue feature from the game
 * No Discipline - disables the discipline feature from the game
 * No Discipline (Task Version) - same as above, implemented as a background task, for redundancy in case other fails
-* Show Decimal Distances on Map - show decimals on map for <5km or <3nmi ranges
-* Decimal Distances (global) - same as above, but global. may cause issues somewhere(?) so not recommended
 # usage
 1. using unity 2019.4.29f1
 2. create new unity mod from uboat launcher

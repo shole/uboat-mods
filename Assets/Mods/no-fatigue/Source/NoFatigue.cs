@@ -15,7 +15,7 @@ namespace UBOAT.Mods.NoFatigue {
 		}
 
 		void Update() {
-			if ( playership == null ) {
+			if ( playership == null  ) {
 				// Debug.Log("[NoFatigue] waiting..");
 				playership = GameObject.FindObjectOfType<PlayerShip>();
 				if ( playership != null ) {
@@ -23,7 +23,7 @@ namespace UBOAT.Mods.NoFatigue {
 					Debug.Log("[NoFatigue] Applied..");
 				}
 			} else {
-				if ( playership.Docked || crew.Length==0 || Time.time-lastUpdate>60f ) { // GetComponents is expensive so use sparingly
+				if ( playership.Docked || crew == null || crew.Length==0 || Time.time-lastUpdate>60f ) { // GetComponents is expensive so use sparingly
 					crew = playership.GetComponentsInChildren<PlayableCharacter>(true);
 					lastUpdate = Time.time;
 				}

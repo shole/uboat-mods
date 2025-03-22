@@ -50,11 +50,14 @@ struct appdata_particles
 };
 
 sampler2D _CameraDepthTexture;
+sampler2D _InteriorMask;
+sampler2D _VolumetricLightingTex;
 
 float4 _SoftParticleFadeParams;
 float4 _CameraFadeParams;
 half _LightDesaturation;
 half _LightingSoftness;
+half _ParticleFogFactor;
 
 #define SOFT_PARTICLE_NEAR_FADE _SoftParticleFadeParams.x
 #define SOFT_PARTICLE_INV_FADE_DISTANCE _SoftParticleFadeParams.y
@@ -555,6 +558,8 @@ struct VertexOutputForwardBase
     UNITY_VERTEX_OUTPUT_STEREO
 };
 
+float4 _FarRenderingParams;
+
 VertexOutputForwardBase vertForwardBase (appdata_particles v)
 {
     UNITY_SETUP_INSTANCE_ID(v);
@@ -615,6 +620,17 @@ VertexOutputForwardBase vertForwardBase (appdata_particles v)
     #endif
 
     UNITY_TRANSFER_FOG(o,o.pos);
+
+    #ifdef USE_CUSTOM_AMBIENT
+        float finalDepth = o.pos.z / abs(o.pos.w);
+
+	    if(finalDepth < _FarRenderingParams.x)
+	    {
+		    float correctedDepth = finalDepth * _FarRenderingParams.z + _FarRenderingParams.y;
+		    o.pos.z = correctedDepth * abs(o.pos.w);
+	    }
+    #endif
+
     return o;
 }
 
@@ -714,7 +730,7 @@ half3 EvaluatePunctualLight(FragmentCommonData s, DeepLight light, int lightInde
 	lightDir = lerp(lightDir, s.normalWorld, _LightingSoftness);
 	light.dir = lightDir;
 
-	light.color *= atten;
+	light.color *= atten * lerp(1.0, 0.1, _LightingSoftness);
 
 	return UNITY_BRDF_PBS(s.diffColor, s.specColor, s.oneMinusReflectivity, s.smoothness, s.normalWorld, -s.eyeVec, ToUnityLight(light, s.normalWorld), noIndirect, subsurfaceScatteringColor).rgb;
 }
@@ -784,9 +800,12 @@ void surf (VertexOutputForwardBase IN, inout SurfaceOutputStandard o)
     half4 albedo = readTexture (_MainTex, IN);
     albedo *= _Color;
 
+    fragCameraFading(IN);
+#if defined(_FADING_ON)
+    clip(albedo.a - 0.00001);
+#endif
     fragColorMode(IN);
     fragSoftParticles(IN);
-    fragCameraFading(IN);
 
     #if defined(_METALLICGLOSSMAP)
     fixed2 metallicGloss = readTexture (_MetallicGlossMap, IN).ra * fixed2(1.0, _Glossiness);
@@ -806,7 +825,7 @@ void surf (VertexOutputForwardBase IN, inout SurfaceOutputStandard o)
     half3 emission = 0;
     #endif
 
-    fragDistortion(IN);
+    //fragDistortion(IN);
 
     o.Albedo = albedo.rgb;
     o.Normal = normal;
@@ -830,10 +849,24 @@ void surf (VertexOutputForwardBase IN, inout SurfaceOutputStandard o)
     #endif
 }
 
-void fragForwardBaseSRP (out half4 outColor : SV_Target0, out half4 outFog : SV_Target1, VertexOutputForwardBase i)
+void fragForwardBaseSRP (out half4 outColor : SV_Target0,
+#if !defined(RAIN)
+	out half4 outFog : SV_Target1,
+#endif
+#if defined(WRITE_DLSS_FRAME_BIAS) && !defined(RAIN)
+	out half4 outDLSSFrameBias : SV_Target2,
+#elif defined(WRITE_DLSS_FRAME_BIAS)
+    out half4 outDLSSFrameBias : SV_Target1,
+#endif
+	VertexOutputForwardBase i)
 {
 #if _MASK_UNDERWATER
 	half underwaterMask = tex2Dproj(_UnderwaterMask, i.grabPassPosition);
+
+#if defined(RAIN)
+	underwaterMask = lerp(1.0, underwaterMask, tex2Dproj(_InteriorMask, i.grabPassPosition).g);
+#endif
+
 	clip(underwaterMask * _UnderwaterMaskFactors.x + _UnderwaterMaskFactors.y);
 #endif
 
@@ -863,13 +896,13 @@ void fragForwardBaseSRP (out half4 outColor : SV_Target0, out half4 outFog : SV_
 	half3 subsurfaceScatteringColor = readTexture(_EmissionMap, i).a * _SubsurfaceScatteringColor;
 
 	// directional lights count
-	for (int lightIndex = 0; lightIndex < _DirectionalLightsCount; ++lightIndex)
-	{
-		DeepLight light = GetLight(lightIndex);
+    if(_DirectionalLightsCount != 0)
+    {
+		DeepLight light = GetLight(0);
 		half grayscale = dot(light.color, half3(0.3, 0.59, 0.11));
 		light.color = lerp(light.color, grayscale, _LightDesaturation);
 		light.dir = lerp(light.dir, s.normalWorld, _LightingSoftness);
-		c.rgb += EvaluateDirectionalLight(s, light, lightIndex, shadowContext, subsurfaceScatteringColor);
+		c.rgb += EvaluateDirectionalLight(s, light, 0, shadowContext, subsurfaceScatteringColor);
 	}
 
 	int pixelLightCount = GetPixelLightCount();
@@ -902,6 +935,13 @@ void fragForwardBaseSRP (out half4 outColor : SV_Target0, out half4 outFog : SV_
 #else
 	DEEP_APPLY_FOG_COLOR(i.fogCoord, c.rgb, unity_FogColor * dot(c.rgb, 0.33333333));
 #endif
+
+	half4 volumetricLighting = tex2Dproj(_VolumetricLightingTex, i.grabPassPosition) * 0.11;
+	half4 volumetricResult = half4(unity_FogColor.rgb * volumetricLighting.rgb, volumetricLighting.a);
+	
+	float sceneZ = LinearEyeDepth (SAMPLE_DEPTH_TEXTURE_PROJ(_CameraDepthTexture, UNITY_PROJ_COORD(i.grabPassPosition)));
+	float depthProp = min(1.0, dist / min(sceneZ, 2500));
+	c.rgb = lerp(c.rgb, c.rgb + volumetricResult.rgb, volumetricResult.a * depthProp);
 	
 	//s.alpha = lerp(0.0, s.alpha, unityFogFactor);
 
@@ -912,13 +952,25 @@ void fragForwardBaseSRP (out half4 outColor : SV_Target0, out half4 outFog : SV_
 	c.a = s.alpha;
 	c = lerp(c, 0.0, underwaterMask * (1.0 - exp(dist * float4(-0.2262118, -0.0260612, -0.0117647, -0.0117647))));
 	s.alpha = c.a;
+#if !defined(RAIN)
 	outFog = half4(1.0 - unityFogFactor.xxx, s.alpha);
-#else
+#endif
+#elif !defined(RAIN)
 	outFog = half4(0.0, 0.0, 0.0, s.alpha);
 #endif
 
 	outColor = OutputForward(c, s.alpha);
 	
+#if _DISTORTION_ON
+    float4 grabPosUV = UNITY_PROJ_COORD(i.grabPassPosition);
+    grabPosUV.xy += sos.Normal.xy * _DistortionStrengthScaled * outColor.a;
+    half3 grabPass = tex2Dproj(_GrabTexture, grabPosUV).rgb;
+    outColor.rgb = lerp(outColor.rgb + grabPass, outColor.rgb, 1.0 - _DistortionBlend);
+#endif
+
+#if defined(WRITE_DLSS_FRAME_BIAS)
+	outDLSSFrameBias = sos.Alpha > 0.0 ? 1.0 : 0.0;
+#endif
 }
 // SRP END ----
 
@@ -967,7 +1019,7 @@ void fragDeferred (VertexOutputForwardBase i,
     outGBuffer1 = half4(s.specColor, s.smoothness);
 
     // RT2: normal (rgb), --unused, very low precision-- (a)
-    outGBuffer2 = half4(s.normalWorld * 0.5f + 0.5f, 1.0f);
+    outGBuffer2 = half4(s.normalWorld * 0.5f + 0.5f, _SurfaceType);
 
 	outEmission = half4(c.rgb, 1.0);
 }

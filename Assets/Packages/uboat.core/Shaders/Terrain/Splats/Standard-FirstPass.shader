@@ -49,7 +49,7 @@ Shader "Nature/Terrain/Standard (DWS)" {
 		// needs more than 8 texcoords
 		#pragma exclude_renderers gles
 
-		#pragma shader_feature_local _NORMALMAP
+        #pragma multi_compile_local _NORMALMAP
 
 		#define TERRAIN_STANDARD_SHADER
 		//#define TERRAIN_INSTANCED_PERPIXEL_NORMAL
@@ -102,9 +102,12 @@ Shader "Nature/Terrain/Standard (DWS)" {
 			o.Metallic = dot(splat_control, half4(_Metallic0, _Metallic1, _Metallic2, _Metallic3)) + _Metallic4 * fifthTexIntensity;
 		}
 		ENDCG
+
+		UsePass "Hidden/Nature/Terrain/Utilities/PICKING"
+        UsePass "Hidden/Nature/Terrain/Utilities/SELECTION"
 	}
 
-	Dependency "AddPassShader" = "Hidden/TerrainEngine/Splatmap/Standard-AddPass"
+	Dependency "AddPassShader" = "Hidden/TerrainEngine/Splatmap/Standard-AddPass (DWS)"
 	Dependency "BaseMapShader" = "Hidden/TerrainEngine/Splatmap/Standard-Base"
 	Dependency "BaseMapGenShader" = "Hidden/TerrainEngine/Splatmap/Standard-BaseGen"
 

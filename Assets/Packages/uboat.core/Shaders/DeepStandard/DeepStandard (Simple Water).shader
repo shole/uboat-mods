@@ -11,7 +11,6 @@ Shader "Standard (DWS, Simple Water)"
 
         _Glossiness("Smoothness", Range(0.0, 1.0)) = 0.5
         _GlossMapScale("Smoothness Scale", Range(0.0, 1.0)) = 1.0
-        [Enum(Metallic Alpha,0,Albedo Alpha,1)] _SmoothnessTextureChannel ("Smoothness texture channel", Float) = 0
 
         [Gamma] _Metallic("Metallic", Range(0.0, 1.0)) = 0.0
         _MetallicGlossMap("Metallic", 2D) = "white" {}
@@ -26,7 +25,7 @@ Shader "Standard (DWS, Simple Water)"
         _ParallaxMap ("Height Map", 2D) = "black" {}
 
         _OcclusionStrength("Strength", Range(0.0, 1.0)) = 1.0
-        _OcclusionMap("Occlusion", 2D) = "white" {}
+		_MipMapBiasMultiplier("MipMap Bias Multiplier", Range(0.0, 1.0)) = 1.0
 
         _EmissionColor("Color", Color) = (0,0,0)
         _EmissionMap("Emission", 2D) = "white" {}
@@ -176,7 +175,7 @@ Shader "Standard (DWS, Simple Water)"
 			#pragma shader_feature ___ _DETAIL_MULX2
 			#pragma shader_feature _PARALLAXMAP
 
-			#pragma multi_compile_prepassfinal
+			//#pragma multi_compile_prepassfinal
 			#pragma multi_compile_instancing
 			// Uncomment the following line to enable dithering LOD crossfade. Note: there are more in the file to uncomment for other passes.
 			//#pragma multi_compile _ LOD_FADE_CROSSFADE
@@ -215,6 +214,7 @@ Shader "Standard (DWS, Simple Water)"
 
 			CGPROGRAM
 			#pragma multi_compile _ _DEEP_PIPELINE
+			#pragma multi_compile _ USE_CUSTOM_AMBIENT
 
 			#define _SIMPLE_WATER 1
 			#define UNITY_HDR_ON 1

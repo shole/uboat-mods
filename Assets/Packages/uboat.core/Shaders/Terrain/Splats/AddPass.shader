@@ -14,6 +14,7 @@ Shader "Hidden/TerrainEngine/Splatmap/Diffuse-AddPass" {
 	CGINCLUDE
 		#pragma surface surf Lambert decal:add vertex:SplatmapVert finalcolor:SplatmapFinalColor finalprepass:SplatmapFinalPrepass finalgbuffer:SplatmapFinalGBuffer
 		#pragma multi_compile_fog
+		#pragma target 4.0
 		#define TERRAIN_SPLAT_ADDPASS
 		#include "TerrainSplatmapCommon.cginc"
 
@@ -38,7 +39,7 @@ Shader "Hidden/TerrainEngine/Splatmap/Diffuse-AddPass" {
 		// Use two sub-shaders to simulate different features for different targets and still fallback correctly.
 		SubShader { // for sm3.0+ targets
 			CGPROGRAM
-				#pragma target 3.0
+				#pragma target 4.0
 				#pragma multi_compile __ _TERRAIN_NORMAL_MAP
 			ENDCG
 		}

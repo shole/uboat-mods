@@ -26,7 +26,7 @@ struct Input
 
 sampler2D _Control;
 float4 _Control_ST;
-float4 _TerrainOffset;
+//float4 _TerrainOffset;
 float _NormalScale;
 half _GlobalMapAlbedoMix;
 half _GlobalMapHeightmapMix;
@@ -43,7 +43,11 @@ sampler2D _Splat0,_Splat1,_Splat2,_Splat3,_Splat4;
 
 #if defined(UNITY_INSTANCING_ENABLED) && !defined(SHADER_API_D3D11_9X)
     Texture2D _TerrainHeightmapTexture;
-    Texture2D _TerrainNormalmapTexture;
+	#if defined(TERRAIN_INSTANCED_PERPIXEL_NORMAL)
+		sampler2D _TerrainNormalmapTexture;
+	#else
+		Texture2D _TerrainNormalmapTexture;
+	#endif
     float4    _TerrainHeightmapRecipSize;   // float4(1.0f/width, 1.0f/height, 1.0f/(width-1), 1.0f/(height-1))
     float4    _TerrainHeightmapScale;       // float4(hmScale.x, hmScale.y / (float)(kMaxHeight), hmScale.z, 0.0f)
 #endif
@@ -90,7 +94,7 @@ void SplatmapVert(inout appdata_full v, out Input data)
 #endif
 	
 	data.tc_Control.xy = TRANSFORM_TEX(v.texcoord, _Control);	// Need to manually transform uv here, as we choose not to use 'uv' prefix for this texcoord.
-	v.vertex += _TerrainOffset;
+	//v.vertex += _TerrainOffset;
 #if defined(HEIGHTMAP)
 	v.texcoord.xy = (v.texcoord.xy * (_Heightmap_TexelSize.zw - 1) + 0.5) / _Heightmap_TexelSize.zw;
 
@@ -125,12 +129,19 @@ void SplatmapMix(Input IN, out half4 splat_control, out half weight, out fixed4 
 	splat_control = tex2D(_Control, IN.tc_Control.xy);
 
 #if !defined(DONT_USE_ELEVATION_DATA)
-	half beach = saturate((3.5 - IN.elevation) * 0.08);
+	half beach = saturate((4.5 - IN.elevation) * 0.075 - splat_control.b);
 	splat_control.g += beach;
 	splat_control.r = max(0.0, splat_control.r - beach);
 #endif
 
 	weight = dot(splat_control, half4(1,1,1,1));
+
+	/*float newRock = splat_control.b * splat_control.b;
+
+	if(splat_control.b > 0.000001)
+		splat_control.rgb /= (1.0 - (splat_control.b - newRock));
+
+	splat_control.b = newRock;*/
 
 	#if !defined(SHADER_API_MOBILE) && defined(TERRAIN_SPLAT_ADDPASS)
 		clip(weight == 0.0f ? -1 : 1);
@@ -140,20 +151,21 @@ void SplatmapMix(Input IN, out half4 splat_control, out half weight, out fixed4 
 	// lighting result can be correctly weighted.
 	//splat_control /= (weight + 1e-3f);
 	half fifthTexIntensity = 1.0 - weight;
+	half distance = _WorldSpaceCameraPos.y;
 
 	mixedDiffuse = 0.0f;
 	#ifdef TERRAIN_STANDARD_SHADER
-		mixedDiffuse += splat_control.r * tex2D(_Splat0, IN.uv_Splat0)/* * half4(1.0, 1.0, 1.0, defaultAlpha.r)*/;
+		mixedDiffuse += splat_control.r * lerp(tex2D(_Splat0, IN.uv_Splat0), tex2D(_Splat0, IN.uv_Splat0 * 0.12), saturate((distance - 100) / 1200))/* * half4(1.0, 1.0, 1.0, defaultAlpha.r)*/;
 		mixedDiffuse += splat_control.g * tex2D(_Splat1, IN.uv_Splat1)/* * half4(1.0, 1.0, 1.0, defaultAlpha.g)*/;
 		mixedDiffuse += splat_control.b * tex2D(_Splat2, IN.uv_Splat2)/* * half4(1.0, 1.0, 1.0, defaultAlpha.b)*/;
 		mixedDiffuse += splat_control.a * tex2D(_Splat3, IN.uv_Splat3)/* * half4(1.0, 1.0, 1.0, defaultAlpha.a)*/;
-		mixedDiffuse += fifthTexIntensity * tex2D(_Splat4, IN.uv_Splat3 * 0.0165);
+		mixedDiffuse += fifthTexIntensity * tex2D(_Splat4, IN.uv_Splat3 * 0.007);
 	#else
 		mixedDiffuse += splat_control.r * tex2D(_Splat0, IN.uv_Splat0);
 		mixedDiffuse += splat_control.g * tex2D(_Splat1, IN.uv_Splat1);
 		mixedDiffuse += splat_control.b * tex2D(_Splat2, IN.uv_Splat2);
 		mixedDiffuse += splat_control.a * tex2D(_Splat3, IN.uv_Splat3);
-		mixedDiffuse += fifthTexIntensity * tex2D(_Splat4, IN.uv_Splat3 * 0.0165);
+		mixedDiffuse += fifthTexIntensity * tex2D(_Splat4, IN.uv_Splat3 * 0.007);
 	#endif
 
 	#ifdef _TERRAIN_NORMAL_MAP
@@ -162,7 +174,7 @@ void SplatmapMix(Input IN, out half4 splat_control, out half weight, out fixed4 
 		nrm += splat_control.g * tex2D(_Normal1, IN.uv_Splat1);
 		nrm += splat_control.b * tex2D(_Normal2, IN.uv_Splat2);
 		nrm += splat_control.a * tex2D(_Normal3, IN.uv_Splat3);
-		nrm += fifthTexIntensity * tex2D(_Normal4, IN.uv_Splat3 * 0.0165);
+		nrm += fifthTexIntensity * tex2D(_Normal4, IN.uv_Splat3 * 0.007);
 		mixedNormal = UnpackNormal(nrm);
 	#endif
 
@@ -170,7 +182,7 @@ void SplatmapMix(Input IN, out half4 splat_control, out half weight, out fixed4 
         mixedNormal = float3(0, 0, 1); // make sure that surface shader compiler realizes we write to normal, as UNITY_INSTANCING_ENABLED is not defined for SHADER_TARGET_SURFACE_ANALYSIS.
     #endif
 
-    #if defined(UNITY_INSTANCING_ENABLED) && !defined(SHADER_API_D3D11_9X) && defined(TERRAIN_INSTANCED_PERPIXEL_NORMAL)
+	#if defined(UNITY_INSTANCING_ENABLED) && !defined(SHADER_API_D3D11_9X) && defined(TERRAIN_INSTANCED_PERPIXEL_NORMAL)
         float3 geomNormal = normalize(tex2D(_TerrainNormalmapTexture, IN.tc_Control.zw).xyz * 2 - 1);
         #ifdef _TERRAIN_NORMAL_MAP
             float3 geomTangent = normalize(cross(geomNormal, float3(0, 0, 1)));
@@ -182,7 +194,7 @@ void SplatmapMix(Input IN, out half4 splat_control, out half weight, out fixed4 
             mixedNormal = geomNormal;
         #endif
         mixedNormal = mixedNormal.xzy;
-    #endif
+	#endif
 }
 
 #ifndef TERRAIN_SURFACE_OUTPUT

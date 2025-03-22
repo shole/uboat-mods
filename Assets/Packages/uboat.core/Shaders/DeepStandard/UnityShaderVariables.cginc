@@ -38,6 +38,19 @@
 
 // ----------------------------------------------------------------------------
 
+#if defined(_FLAG)
+struct FlagAnimationData
+{
+	float3 Position;
+	float3 Normal;
+	float3 Tangent;
+};
+
+StructuredBuffer<FlagAnimationData> _FlagAnimation;
+int _FlagAnimationFrameCount;
+int _FlagAnimationVertexCount;
+half _FlagAnimationSpeed;
+#endif
 
 CBUFFER_START(UnityPerCamera)
     // Time (t = time since current level load) values from Unity
@@ -110,15 +123,17 @@ CBUFFER_START(SkySphericalHarmonics)
     half4 sky_SHBg;
     half4 sky_SHBb;
     half4 sky_SHC;
+    bool useLightProbes;
 CBUFFER_END
 
-	#define ambient_SHAr sky_SHAr
-    #define ambient_SHAg sky_SHAg
-    #define ambient_SHAb sky_SHAb
-    #define ambient_SHBr sky_SHBr
-    #define ambient_SHBg sky_SHBg
-    #define ambient_SHBb sky_SHBb
-    #define ambient_SHC sky_SHC
+    // the following condition repetitions are optimized by HLSL compiler and appear only once in the final shader assembly
+	#define ambient_SHAr (useLightProbes && any(unity_SHAg.rg != 0.0) ? unity_SHAr : sky_SHAr)
+    #define ambient_SHAg (useLightProbes && any(unity_SHAg.rg != 0.0) ? unity_SHAg : sky_SHAg)
+    #define ambient_SHAb (useLightProbes && any(unity_SHAg.rg != 0.0) ? unity_SHAb : sky_SHAb)
+    #define ambient_SHBr (useLightProbes && any(unity_SHAg.rg != 0.0) ? unity_SHBr : sky_SHBr)
+    #define ambient_SHBg (useLightProbes && any(unity_SHAg.rg != 0.0) ? unity_SHBg : sky_SHBg)
+    #define ambient_SHBb (useLightProbes && any(unity_SHAg.rg != 0.0) ? unity_SHBb : sky_SHBb)
+    #define ambient_SHC (useLightProbes && any(unity_SHAg.rg != 0.0) ? unity_SHC : sky_SHC)
 
 #else
     #define ambient_SHAr unity_SHAr
@@ -136,49 +151,94 @@ CBUFFER_START(UnityPerDraw)
 
     float4x4 unity_ObjectToWorld;
     float4x4 unity_WorldToObject;
-    float4 unity_LODFade;
-    half4 unity_WorldTransformParams; // w is usually 1.0, or -1.0 for odd-negative scale transforms
 
-    float4 unity_LightmapST;
-    float4 unity_DynamicLightmapST;
+	float4 unity_LODFade;
+	half4 unity_WorldTransformParams; // w is usually 1.0, or -1.0 for odd-negative scale transforms
+    
+	#if !defined(STATIC_OPTIMIZATIONS)
 
-    // SH lighting environment
-    half4 unity_SHAr;
-    half4 unity_SHAg;
-    half4 unity_SHAb;
-    half4 unity_SHBr;
-    half4 unity_SHBg;
-    half4 unity_SHBb;
-    half4 unity_SHC;
+		float4 unity_LightmapST;
+		float4 unity_DynamicLightmapST;
 
-    // x = Disabled(0)/Enabled(1)
-    // y = Computation are done in global space(0) or local space(1)
-    // z = Texel size on U texture coordinate
-    float4 unity_ProbeVolumeParams;
-    float4x4 unity_ProbeVolumeWorldToObject;
-    float4 unity_ProbeVolumeSizeInv;
-    float4 unity_ProbeVolumeMin;
+		// SH lighting environment
+		half4 unity_SHAr;
+		half4 unity_SHAg;
+		half4 unity_SHAb;
+		half4 unity_SHBr;
+		half4 unity_SHBg;
+		half4 unity_SHBb;
+		half4 unity_SHC;
 
-    //fixed4 unity_ProbesOcclusion;
+		// x = Disabled(0)/Enabled(1)
+		// y = Computation are done in global space(0) or local space(1)
+		// z = Texel size on U texture coordinate
+		float4 unity_ProbeVolumeParams;
+		float4x4 unity_ProbeVolumeWorldToObject;
+		float4 unity_ProbeVolumeSizeInv;
+		float4 unity_ProbeVolumeMin;
 
-    //X : Use last frame positions (right now skinned meshes are the only objects that use this
-	//Y : Force No Motion
-	//Z : Z bias value
-    float4x4 unity_MatrixPreviousM;
-    float4x4 unity_MatrixPreviousMI;
-	float4 unity_MotionVectorsParams;
+		//fixed4 unity_ProbesOcclusion;
 
-    half4 unity_LightData;
-    half4 unity_LightIndices[2];
+		//X : Use last frame positions (right now skinned meshes are the only objects that use this
+		//Y : Force No Motion
+		//Z : Z bias value
+		float4x4 unity_MatrixPreviousM;
+		float4x4 unity_MatrixPreviousMI;
+		float4 unity_MotionVectorsParams;
+	#else
+		#define unity_LightmapST float4(0,0,0,0)
+		#define unity_DynamicLightmapST float4(0,0,0,0)
 
-    half4  unity_SpecCube0_HDR;
-    half4  unity_SpecCube1_HDR;
+		#define unity_SHAr half4(0,0,0,0)
+		#define unity_SHAg half4(0,0,0,0)
+		#define unity_SHAb half4(0,0,0,0)
+		#define unity_SHBr half4(0,0,0,0)
+		#define unity_SHBg half4(0,0,0,0)
+		#define unity_SHBb half4(0,0,0,0)
+		#define unity_SHC half4(0,0,0,0)
+
+		#define unity_ProbeVolumeParams float4(0,0,0,0)
+		#define unity_ProbeVolumeWorldToObject float4x4(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)
+		#define unity_ProbeVolumeSizeInv float4(0,0,0,0)
+		#define unity_ProbeVolumeMin float4(0,0,0,0)
+
+		#define unity_MatrixPreviousM float4x4(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)
+		#define unity_MatrixPreviousMI float4x4(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)
+		#define unity_MotionVectorsParams float4(0,0,0,0)
+	#endif
+
+	#if !defined(OPAQUE_OPTIMIZATIONS)
+		half4 unity_LightData;
+		half4 unity_LightIndices[2];
+
+		float4 unity_SpecCube0_BoxMax;
+		float4 unity_SpecCube0_BoxMin;
+		float4 unity_SpecCube0_ProbePosition;
+		half4  unity_SpecCube0_HDR;
+
+		float4 unity_SpecCube1_BoxMax;
+		float4 unity_SpecCube1_BoxMin;
+		float4 unity_SpecCube1_ProbePosition;
+		half4  unity_SpecCube1_HDR;
+	#else
+		#define unity_LightData half4(0,0,0,0)
+
+		#define unity_SpecCube0_BoxMax float4(0,0,0,0)
+		#define unity_SpecCube0_BoxMin float4(0,0,0,0)
+		#define unity_SpecCube0_ProbePosition float4(0,0,0,0)
+		#define unity_SpecCube0_HDR half4(0,0,0,0)
+
+		#define unity_SpecCube1_BoxMax float4(0,0,0,0)
+		#define unity_SpecCube1_BoxMin float4(0,0,0,0)
+		#define unity_SpecCube1_ProbePosition float4(0,0,0,0)
+		#define unity_SpecCube1_HDR half4(0,0,0,0)
+	#endif
 
 CBUFFER_END
 
 #define unity_ProbesOcclusion fixed4(0,0,0,0)
 
-#if !defined(DEFERRED_PASS) && (UNITY_SPECCUBE_BLENDING || UNITY_SPECCUBE_BOX_PROJECTION)
+/*#if !defined(DEFERRED_PASS) && (UNITY_SPECCUBE_BLENDING || UNITY_SPECCUBE_BOX_PROJECTION)
 CBUFFER_START(UnityReflectionProbes)
     float4 unity_SpecCube0_BoxMax;
     float4 unity_SpecCube0_BoxMin;
@@ -188,8 +248,9 @@ CBUFFER_START(UnityReflectionProbes)
     float4 unity_SpecCube1_BoxMin;
     float4 unity_SpecCube1_ProbePosition;
 CBUFFER_END
-#endif
+#endif*/
 
+#if !defined(OPAQUE_OPTIMIZATIONS)
 CBUFFER_START(UnityLighting)
     #ifdef USING_DIRECTIONAL_LIGHT
     half4 _WorldSpaceLightPos0;
@@ -197,7 +258,7 @@ CBUFFER_START(UnityLighting)
     float4 _WorldSpaceLightPos0;
     #endif
 
-    #if defined(SPEEDTREE_SHADER)
+    #if defined(SPEEDTREE_SHADER) && !defined(BILLBOARD_SHADER)
     half4 unity_LightColor[8];
     float4 unity_LightPosition[8]; // view-space vertex light positions (position,1), or (-direction,0) for directional lights.
     half4 unity_LightAtten[8];
@@ -212,6 +273,14 @@ CBUFFER_START(UnityShadows)
     half4 _LightShadowData;
     float4 unity_ShadowFadeCenterAndType;
 CBUFFER_END
+#else
+	#define _WorldSpaceLightPos0 half4(0,0,0,0)
+	#define unity_LightShadowBias float4(0,0,0,0)
+	#define _LightShadowData half4(0,0,0,0)
+	#define unity_ShadowFadeCenterAndType float4(0,0,0,0)
+
+	#define unity_OcclusionMaskSelector fixed4(0,0,0,0)
+#endif
 
 #if defined(USING_STEREO_MATRICES)
 GLOBAL_CBUFFER_START(UnityStereoGlobals)

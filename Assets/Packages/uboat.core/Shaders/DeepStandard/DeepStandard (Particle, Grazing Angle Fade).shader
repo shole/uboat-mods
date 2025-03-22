@@ -11,7 +11,6 @@ Shader "Standard (DWS, Particle, Grazing Angle Fade)"
 
         _Glossiness("Smoothness", Range(0.0, 1.0)) = 0.5
         _GlossMapScale("Smoothness Scale", Range(0.0, 1.0)) = 1.0
-        [Enum(Metallic Alpha,0,Albedo Alpha,1)] _SmoothnessTextureChannel ("Smoothness texture channel", Float) = 0
 
         [Gamma] _Metallic("Metallic", Range(0.0, 1.0)) = 0.0
         _MetallicGlossMap("Metallic", 2D) = "white" {}
@@ -26,7 +25,7 @@ Shader "Standard (DWS, Particle, Grazing Angle Fade)"
         _ParallaxMap ("Height Map", 2D) = "black" {}
 
         _OcclusionStrength("Strength", Range(0.0, 1.0)) = 1.0
-        _OcclusionMap("Occlusion", 2D) = "white" {}
+		_MipMapBiasMultiplier("MipMap Bias Multiplier", Range(0.0, 1.0)) = 1.0
 
         _EmissionColor("Color", Color) = (0,0,0)
         _EmissionMap("Emission", 2D) = "white" {}
@@ -113,6 +112,7 @@ Shader "Standard (DWS, Particle, Grazing Angle Fade)"
 
 			#define UNITY_HDR_ON 1
             #define PARTICLE_SHADER 1
+            #define _GLOSSYREFLECTIONS_OFF 1
 			#define _ANGULAR_FADING_ON 1
 
 			#define LIGHTPROBE_SH 1

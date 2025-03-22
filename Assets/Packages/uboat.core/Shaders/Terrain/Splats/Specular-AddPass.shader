@@ -26,7 +26,7 @@ Shader "Hidden/TerrainEngine/Splatmap/Specular-AddPass" {
 		#pragma surface surf BlinnPhong decal:add vertex:SplatmapVert finalcolor:SplatmapFinalColor finalprepass:SplatmapFinalPrepass finalgbuffer:SplatmapFinalGBuffer
 		#pragma multi_compile_fog
 		#pragma multi_compile __ _TERRAIN_NORMAL_MAP
-		#pragma target 3.0
+		#pragma target 4.0
 		// needs more than 8 texcoords
 		#pragma exclude_renderers gles
 

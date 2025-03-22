@@ -87,3 +87,5 @@ Assets/Plugins/Editor/JetBrains/*
 /Assets/terrain.raw*
 /.idea/
 /Logs/
+/Assets/Mods/buildlogtep
+/UserSettings

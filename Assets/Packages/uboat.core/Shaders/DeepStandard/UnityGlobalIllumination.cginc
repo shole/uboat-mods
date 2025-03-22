@@ -9,6 +9,8 @@
 #include "UnityStandardUtils.cginc"
 #include "UnityShadowLibrary.cginc"
 
+half _WaterVerticalOffset;
+
 inline half3 DecodeDirectionalSpecularLightmap (half3 color, half4 dirTex, half3 normalWorld, bool isRealtimeLightmap, fixed4 realtimeNormalTex, out UnityLight o_light)
 {
     o_light.color = color;
@@ -143,7 +145,7 @@ inline UnityGI UnityGI_Base(UnityGIInput data, half occlusion, half3 normalWorld
         #endif
     #endif
 
-    o_gi.indirect.diffuse *= occlusion * saturate(data.worldPos.y * float3(0.063339304, 0.007297136, 0.003294116) + 1.02)/* min(1.0, exp(float3(0.2262118, 0.0260612, 0.0117647) * data.worldPos.y))*/;
+    o_gi.indirect.diffuse *= occlusion * saturate((data.worldPos.y - _WaterVerticalOffset) * float3(0.063339304, 0.007297136, 0.003294116) + 1.02)/* min(1.0, exp(float3(0.2262118, 0.0260612, 0.0117647) * data.worldPos.y))*/;
     return o_gi;
 }
 

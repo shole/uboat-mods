@@ -16,6 +16,13 @@
 
 #include "AutoLight.cginc"
 
+float4 _FarRenderingParams;
+half4 _TransparencyFogColor;
+half _VolumetricIntensity;
+
+sampler2D _VolumetricLightingTex;
+sampler2D _CameraDepthTexture;
+
 //-------------------------------------------------------------------------------------
 // counterpart for NormalizePerPixelNormal
 // skips normalization per-vertex and expects normalization to happen per-pixel
@@ -233,7 +240,7 @@ inline FragmentCommonData RoughnessSetup(float4 i_tex)
 
 inline FragmentCommonData MetallicSetup (float4 i_tex)
 {
-    half2 metallicGloss = MetallicGloss(i_tex.xy);
+    half2 metallicGloss = MetallicGloss(i_tex);
     half metallic = metallicGloss.x;
     half smoothness = metallicGloss.y; // this is 1 minus the square root of real roughness m.
 
@@ -428,17 +435,15 @@ struct VertexOutputForwardBase
     half4 ambientOrLightmapUV             : TEXCOORD5;    // SH or Lightmap UV
 #if !defined (UNITY_HALF_PRECISION_FRAGMENT_SHADER_REGISTERS)
     UNITY_SHADOW_COORDS(6)
-    UNITY_FOG_COORDS(7)
 #else
     UNITY_LIGHTING_COORDS(6,7)
-    UNITY_FOG_COORDS(8)
 #endif
         // next ones would not fit into SM2.0 limits, but they are always for SM3.0+
     #if UNITY_REQUIRE_FRAG_WORLDPOS && !UNITY_PACK_WORLDPOS_WITH_TANGENT
-        float3 posWorld                 : TEXCOORD9;
+        float3 posWorld                 : TEXCOORD8;
     #endif
 
-	half4 screenPos						: TEXCOORD10;
+	half4 screenPos						: TEXCOORD9;
 
     UNITY_VERTEX_INPUT_INSTANCE_ID
     UNITY_VERTEX_OUTPUT_STEREO
@@ -452,16 +457,46 @@ VertexOutputForwardBase vertForwardBase (VertexInput v)
     UNITY_TRANSFER_INSTANCE_ID(v, o);
     UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
 
+#if defined(_BILLBOARD)
+    AFSBillboardVert_DWS(/*inout*/ v);
+#endif
+
+#if defined(_TREE_LEAVES)
+    float3 pivot;
+
+	// 15bit compression 2 components only, important: sign of y
+	pivot.xz = (frac(float2(1.0f, 32768.0f) * v.uv2.xx) * 2) - 1;
+	pivot.y = sqrt(1 - saturate(dot(pivot.xz, pivot.xz)));
+	pivot *= v.uv2.y;
+	#if !defined(IS_LODTREE)
+		pivot *= _TreeInstanceScale.xyz;
+	#endif
+
+	float4 TerrainLODWind = _TerrainLODWind;
+	TerrainLODWind.xyz = mul((float3x3)unity_WorldToObject, _TerrainLODWind.xyz);
+	CTI_AnimateVertex_DWS( v, float4(v.vertex.xyz, v.color.b), v.normal, float4(v.color.xy, v.uv1.xy), pivot, v.color.b, TerrainLODWind, v.uv2.z);
+#elif defined(_TREE_BARK)
+    float4 TerrainLODWind = _TerrainLODWind;
+	TerrainLODWind.xyz = mul((float3x3)unity_WorldToObject, _TerrainLODWind.xyz);
+	CTI_AnimateVertex_DWS( v, float4(v.vertex.xyz, v.color.b), v.normal, float4(v.color.xy, v.uv1.xy), float3(0,0,0), 0, TerrainLODWind, 0); //v.uv2.z);
+#elif defined(_TREE_LEAVES_MANUFACTURE) || defined(_TREE_BARK_MANUFACTURE)
+    CalculateWind(v);
+#endif
+
     float4 posWorld = mul(unity_ObjectToWorld, v.vertex);
 
-#if defined(USE_CUSTOM_AMBIENT)			// apply earth curvature effect only to exterior meshes
+#if defined(USE_CUSTOM_AMBIENT) && !defined(_BILLBOARD)			// apply earth curvature effect only to exterior meshes
 	posWorld = CompensateForEarthCurvature(posWorld);
 #endif
 
-	#if defined(_SIMPLE_WATER)
+#if defined(_SIMPLE_WATER)
 	v.vertex.y -= max(0.0, posWorld.y - _ClipHeight);
 	posWorld.y = min(posWorld.y, _ClipHeight);
-	#endif
+#endif
+
+#if defined(DECAL)
+    v.vertex.xyz += v.normal * 0.001;
+#endif
 
     #if UNITY_REQUIRE_FRAG_WORLDPOS
         #if UNITY_PACK_WORLDPOS_WITH_TANGENT
@@ -472,12 +507,22 @@ VertexOutputForwardBase vertForwardBase (VertexInput v)
             o.posWorld = posWorld.xyz;
         #endif
     #endif
+
+	float3 normalWorld = UnityObjectToWorldNormal(v.normal);
+
+#if defined(_HAIR)
+	posWorld.xyz += normalWorld * _HairOffset;
+#endif
+
     o.pos = mul(UNITY_MATRIX_VP, posWorld);
+
+#if defined(_BILLBOARD)
+    o.pos = UnityObjectToClipPos(v.vertex);
+#endif
 
     o.tex = TexCoords(v);
     o.eyeVec = NormalizePerVertexNormal(posWorld.xyz - _WorldSpaceCameraPos);
 	o.screenPos = ComputeScreenPos(o.pos);
-    float3 normalWorld = UnityObjectToWorldNormal(v.normal);
     #ifdef _TANGENT_TO_WORLD
         float4 tangentWorld = float4(UnityObjectToWorldDir(v.tangent.xyz), v.tangent.w);
 
@@ -496,6 +541,13 @@ VertexOutputForwardBase vertForwardBase (VertexInput v)
 
     o.ambientOrLightmapUV = VertexGIForward(v, posWorld, normalWorld);
 
+#if defined(_BILLBOARD)
+    o.ambientOrLightmapUV.w = v.color.r;
+#elif defined(_TREE_LEAVES_MANUFACTURE)
+    float hueVariationAmount = frac(dot(unity_ObjectToWorld._m03_m13_m23, 1));
+	o.ambientOrLightmapUV.w = saturate(hueVariationAmount * lerp(_HueVariation.a, _HueVariationAutumn.a, _SeasonBlendFactor));
+#endif
+
     #ifdef _PARALLAXMAP
         TANGENT_SPACE_ROTATION;
         half3 viewDirForParallax = mul (rotation, ObjSpaceViewDir(v.vertex));
@@ -504,7 +556,16 @@ VertexOutputForwardBase vertForwardBase (VertexInput v)
         o.tangentToWorldAndPackedData[2].w = viewDirForParallax.z;
     #endif
 
-    UNITY_TRANSFER_FOG(o,o.pos);
+    #ifdef USE_CUSTOM_AMBIENT
+        float finalDepth = o.pos.z / abs(o.pos.w);
+
+	    if(finalDepth < _FarRenderingParams.x)
+	    {
+		    float correctedDepth = finalDepth * _FarRenderingParams.z + _FarRenderingParams.y;
+		    o.pos.z = correctedDepth * abs(o.pos.w);
+	    }
+    #endif
+
     return o;
 }
 
@@ -573,7 +634,7 @@ UnityLight ToUnityLight(DeepLight light, half3 normalWorld)
 	return unityLight;
 }
 
-half3 EvaluatePunctualLight(FragmentCommonData s, DeepLight light, int lightIndex, ShadowContext shadowContext)
+half3 EvaluatePunctualLight(FragmentCommonData s, DeepLight light, int lightIndex, ShadowContext shadowContext, half3 translucency)
 {
 	UnityIndirect noIndirect = ZeroIndirect();
 	int shadowIndex = _LightShadowIndices[lightIndex];
@@ -601,10 +662,14 @@ half3 EvaluatePunctualLight(FragmentCommonData s, DeepLight light, int lightInde
 
 	light.color *= atten;
 
-	return UNITY_BRDF_PBS(s.diffColor, s.specColor, s.oneMinusReflectivity, s.smoothness, s.normalWorld, -s.eyeVec, ToUnityLight(light, s.normalWorld), noIndirect).rgb;
+	return UNITY_BRDF_PBS(s.diffColor, s.specColor, s.oneMinusReflectivity, s.smoothness, s.normalWorld, -s.eyeVec, ToUnityLight(light, s.normalWorld), noIndirect).rgb
+#if defined(_TRANSLUCENCY)
+        + UNITY_BRDF_PBS(s.diffColor, 0, s.oneMinusReflectivity, s.smoothness, s.normalWorld, -s.eyeVec, ToUnityLight(light, -s.normalWorld), noIndirect).rgb * translucency
+#endif
+        ;
 }
 
-half3 EvaluateDirectionalLight(FragmentCommonData s, DeepLight light, int lightIndex, ShadowContext shadowContext)
+half3 EvaluateDirectionalLight(FragmentCommonData s, DeepLight light, int lightIndex, ShadowContext shadowContext, half3 translucency)
 {
 	UnityIndirect noIndirect = ZeroIndirect();
 	int shadowIndex = _LightShadowIndices[lightIndex];
@@ -617,7 +682,11 @@ half3 EvaluateDirectionalLight(FragmentCommonData s, DeepLight light, int lightI
 
 	light.color *= atten;
 
-	return UNITY_BRDF_PBS(s.diffColor, s.specColor, s.oneMinusReflectivity, s.smoothness, s.normalWorld, -s.eyeVec, ToUnityLight(light, s.normalWorld), noIndirect).rgb;
+	return UNITY_BRDF_PBS(s.diffColor, s.specColor, s.oneMinusReflectivity, s.smoothness, s.normalWorld, -s.eyeVec, ToUnityLight(light, s.normalWorld), noIndirect).rgb
+#if defined(_TRANSLUCENCY)
+        + UNITY_BRDF_PBS(s.diffColor, 0, s.oneMinusReflectivity, s.smoothness, -s.normalWorld, -s.eyeVec, ToUnityLight(light, -s.normalWorld), noIndirect).rgb * translucency
+#endif
+        ;
 }
 
 half GetPixelLightCount()
@@ -626,18 +695,43 @@ half GetPixelLightCount()
 	return unity_LightData.y;
 }
 
-void fragForwardBaseSRP (out half4 outColor : SV_Target0, out half4 outFog : SV_Target1, VertexOutputForwardBase i)
+void fragBlank (out half4 outColor : SV_Target0, VertexOutputForwardBase i)
+{
+    outColor = 0;
+}
+
+void fragForwardBaseSRP (out half4 outColor : SV_Target0,
+    out half4 outFog : SV_Target1, VertexOutputForwardBase i
+#if defined(_TREE_MANUFACTURE)
+    ,half side : VFACE
+#endif
+    )
 {
 // EDITS START
 	DISSOLVE_MASK(i.tex.zw);
 // EDITS END
 
     UNITY_APPLY_DITHER_CROSSFADE(i.pos.xy);
+    ApplySnowEffectsPre(i.tangentToWorldAndPackedData[2].xyz);
 
     FRAGMENT_SETUP(s)
 
     UNITY_SETUP_INSTANCE_ID(i);
     UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
+
+#if defined(_TREE_MANUFACTURE)
+    if(side < 0.0)
+        s.normalWorld = -s.normalWorld;
+
+    clip(s.alpha - 0.05);
+    s.alpha = 1.0;
+#endif
+
+    half3 translucency = 0.0;
+    half occlusion = Occlusion(i.tex.xy);
+
+    ApplyTreeEffects(s, i.ambientOrLightmapUV.w, translucency, occlusion, i.tex.xy);
+    ApplySnowEffects(s, occlusion, i.tex.xy);
 
 	half4 c = 0.0;
 
@@ -647,7 +741,7 @@ void fragForwardBaseSRP (out half4 outColor : SV_Target0, out half4 outFog : SV_
 	for (int lightIndex = 0; lightIndex < _DirectionalLightsCount; ++lightIndex)
 	{
 		DeepLight light = GetLight(lightIndex);
-		c.rgb += EvaluateDirectionalLight(s, light, lightIndex, shadowContext);
+		c.rgb += EvaluateDirectionalLight(s, light, lightIndex, shadowContext, translucency);
 	}
 
 	// point lights count
@@ -657,26 +751,29 @@ void fragForwardBaseSRP (out half4 outColor : SV_Target0, out half4 outFog : SV_
 		int realLightIndex = _LightIndexBuffer[unity_LightData.x + lightIndex2];
 
 		DeepLight light = GetLight(realLightIndex);
-		c.rgb += EvaluatePunctualLight(s, light, realLightIndex, shadowContext);
+		c.rgb += EvaluatePunctualLight(s, light, realLightIndex, shadowContext, translucency);
 	}
 
     UnityLight mainLight = DummyLight ();
 	half atten = 1;
 
-    half occlusion = Occlusion(i.tex.xy);
     UnityGI gi = FragmentGI (s, occlusion, i.ambientOrLightmapUV, atten, mainLight);
 
     c += UNITY_BRDF_PBS (s.diffColor, s.specColor, s.oneMinusReflectivity, s.smoothness, s.normalWorld, -s.eyeVec, gi.light, gi.indirect);
     c.rgb += Emission(i.tex.xy);
 
 #if defined(FOG_LINEAR) || defined(FOG_EXP) || defined(FOG_EXP2)
-	float dist = UNITY_Z_0_FAR_FROM_CLIPSPACE(i.fogCoord);
+	float dist = LinearEyeDepth(i.screenPos.z / i.screenPos.w);
 
 #if defined(_ALPHAPREMULTIPLY_ON)
-	DEEP_APPLY_FOG_COLOR(i.fogCoord, c.rgb, unity_FogColor * s.alpha);
+	DEEP_APPLY_FOG_COLOR(i.fogCoord, c.rgb, _TransparencyFogColor * s.alpha);
 #else
-    DEEP_APPLY_FOG_COLOR(i.fogCoord, c.rgb, unity_FogColor);
+    DEEP_APPLY_FOG_COLOR(i.fogCoord, c.rgb, _TransparencyFogColor);
 #endif
+
+	half4 volumetricLighting = tex2Dproj(_VolumetricLightingTex, i.screenPos) * _VolumetricIntensity;
+	half4 volumetricResult = half4(_TransparencyFogColor.rgb * volumetricLighting.rgb, volumetricLighting.a);
+	c.rgb = lerp(c.rgb, c.rgb + volumetricResult.rgb, volumetricResult.a);
 
 	half underwaterMask = tex2Dproj(_UnderwaterMask, i.screenPos);
 	c.a = s.alpha;
@@ -737,10 +834,13 @@ struct VertexOutputDeferred
 		half2 damageMapUV					: TEXCOORD7;
 	#endif
 
+    #if defined(IMPOSTOR_BAKE)
+        float depth                         : TEXCOORD8;
+    #endif
+
     UNITY_VERTEX_INPUT_INSTANCE_ID
     UNITY_VERTEX_OUTPUT_STEREO
 };
-
 
 VertexOutputDeferred vertDeferred (VertexInput v)
 {
@@ -750,13 +850,65 @@ VertexOutputDeferred vertDeferred (VertexInput v)
     UNITY_TRANSFER_INSTANCE_ID(v, o);
     UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
 
+#if defined(_FLAG)
+	float frameIndex = (_Time.y * _FlagAnimationSpeed) % _FlagAnimationFrameCount;
+	int frameIndexLB = floor(frameIndex);
+	int frameIndexUB = ceil(frameIndex);
+
+	if(frameIndexUB == _FlagAnimationFrameCount)
+		frameIndexUB = 0;
+
+	float lerpFactor = frameIndex - frameIndexLB;
+	int vertexID = v.id;
+
+	int vbIndexLB = frameIndexLB * _FlagAnimationVertexCount + vertexID;
+	int vbIndexUB = frameIndexUB * _FlagAnimationVertexCount + vertexID;
+
+	v.vertex.xyz = lerp(_FlagAnimation[vbIndexLB].Position.xyz, _FlagAnimation[vbIndexUB].Position.xyz, lerpFactor);
+	v.normal.xyz = lerp(_FlagAnimation[vbIndexLB].Normal.xyz, _FlagAnimation[vbIndexUB].Normal.xyz, lerpFactor);
+
+#if defined(_TANGENT_TO_WORLD)
+	v.tangent.xyz = lerp(_FlagAnimation[vbIndexLB].Tangent.xyz, _FlagAnimation[vbIndexUB].Tangent.xyz, lerpFactor);
+#endif
+#endif
+
+#if defined(_BILLBOARD)
+    AFSBillboardVert_DWS(/*inout*/ v);
+#endif
+
 #if defined(_SIMPLE_WATER)
 	v.vertex.xz = lerp(v.uv2, v.vertex.xz, _FillRatio);
 #endif
 
+#if defined(DECAL)
+    v.vertex.xyz += v.normal * 0.001;
+#endif
+
+#if defined(_TREE_LEAVES)
+    float3 pivot;
+
+	// 15bit compression 2 components only, important: sign of y
+	pivot.xz = (frac(float2(1.0f, 32768.0f) * v.uv2.xx) * 2) - 1;
+	pivot.y = sqrt(1 - saturate(dot(pivot.xz, pivot.xz)));
+	pivot *= v.uv2.y;
+	#if !defined(IS_LODTREE)
+		pivot *= _TreeInstanceScale.xyz;
+	#endif
+
+	float4 TerrainLODWind = _TerrainLODWind;
+	TerrainLODWind.xyz = mul((float3x3)unity_WorldToObject, _TerrainLODWind.xyz);
+	CTI_AnimateVertex_DWS( v, float4(v.vertex.xyz, v.color.b), v.normal, float4(v.color.xy, v.uv1.xy), pivot, v.color.b, TerrainLODWind, v.uv2.z);
+#elif defined(_TREE_BARK)
+    float4 TerrainLODWind = _TerrainLODWind;
+	TerrainLODWind.xyz = mul((float3x3)unity_WorldToObject, _TerrainLODWind.xyz);
+	CTI_AnimateVertex_DWS( v, float4(v.vertex.xyz, v.color.b), v.normal, float4(v.color.xy, v.uv1.xy), float3(0,0,0), 0, TerrainLODWind, 0); //v.uv2.z);
+#elif defined(_TREE_LEAVES_MANUFACTURE) || defined(_TREE_BARK_MANUFACTURE)
+    CalculateWind(v);
+#endif
+
     float4 posWorld = mul(unity_ObjectToWorld, v.vertex);
 
-#if defined(USE_CUSTOM_AMBIENT)			// apply earth curvature effect only to exterior meshes
+#if defined(USE_CUSTOM_AMBIENT) && !defined(_BILLBOARD)			// apply earth curvature effect only to exterior meshes
 	posWorld = CompensateForEarthCurvature(posWorld);
 #endif
 
@@ -774,11 +926,21 @@ VertexOutputDeferred vertDeferred (VertexInput v)
             o.posWorld = posWorld.xyz;
         #endif
     #endif
+
+	float3 normalWorld = UnityObjectToWorldNormal(v.normal);
+
+#if defined(_HAIR)
+	posWorld.xyz += normalWorld * _HairOffset;
+#endif
+
     o.pos = mul(UNITY_MATRIX_VP, posWorld);
+
+#if defined(_BILLBOARD)
+    o.pos = UnityObjectToClipPos(v.vertex);
+#endif
 
     o.tex = TexCoords(v);
     o.eyeVec = NormalizePerVertexNormal(posWorld.xyz - _WorldSpaceCameraPos);
-    float3 normalWorld = UnityObjectToWorldNormal(v.normal);
     #ifdef _TANGENT_TO_WORLD
         float4 tangentWorld = float4(UnityObjectToWorldDir(v.tangent.xyz), v.tangent.w);
 
@@ -802,6 +964,13 @@ VertexOutputDeferred vertDeferred (VertexInput v)
         o.ambientOrLightmapUV.zw = v.uv2.xy * unity_DynamicLightmapST.xy + unity_DynamicLightmapST.zw;
     #endif
 
+#if defined(_BILLBOARD)
+    o.ambientOrLightmapUV.w = v.color.r;
+#elif defined(_TREE_LEAVES_MANUFACTURE)
+    float hueVariationAmount = frac(dot(unity_ObjectToWorld._m03_m13_m23, 1));
+	o.ambientOrLightmapUV.w = saturate(hueVariationAmount * lerp(_HueVariation.a, _HueVariationAutumn.a, _SeasonBlendFactor));
+#endif
+
 	#if defined(_DAMAGE_MAP) || defined(_WETNESS_SUPPORT_ON)
 		o.damageMapUV.xy = _UVWetnessMap == 0 ? o.tex.xy : v.uv1.xy;
 	#endif
@@ -814,6 +983,20 @@ VertexOutputDeferred vertDeferred (VertexInput v)
         o.tangentToWorldAndPackedData[2].w = viewDirForParallax.z;
     #endif
 
+    #ifdef USE_CUSTOM_AMBIENT
+        float finalDepth = o.pos.z / abs(o.pos.w);
+
+	    if(finalDepth < _FarRenderingParams.x)
+	    {
+		    float correctedDepth = finalDepth * _FarRenderingParams.z + _FarRenderingParams.y;
+		    o.pos.z = correctedDepth * abs(o.pos.w);
+	    }
+    #endif
+
+    #if defined(IMPOSTOR_BAKE)
+        o.depth = -UnityObjectToViewPos(v.vertex.xyz).z;
+    #endif
+
     return o;
 }
 
@@ -823,8 +1006,11 @@ void fragDeferred (
     out half4 outGBuffer1 : SV_Target1,
     out half4 outGBuffer2 : SV_Target2,
     out half4 outEmission : SV_Target3          // RT3: emission (rgb), --unused-- (a)
-#if defined(SHADOWS_SHADOWMASK) && (UNITY_ALLOWED_MRT_COUNT > 4)
-    ,out half4 outShadowMask : SV_Target4       // RT4: shadowmask (rgba)
+#if defined(DECAL_FULL)
+    ,out half4 outDecal : SV_Target4
+#endif
+#if defined(_TREE_MANUFACTURE) || defined(_FLAG)
+    ,half side : VFACE
 #endif
 )
 {
@@ -833,8 +1019,8 @@ void fragDeferred (
         outGBuffer1 = 1;
         outGBuffer2 = 0;
         outEmission = 0;
-        #if defined(SHADOWS_SHADOWMASK) && (UNITY_ALLOWED_MRT_COUNT > 4)
-            outShadowMask = 1;
+        #if defined(DECAL_FULL)
+            outDecal = 0;
         #endif
         return;
     #endif
@@ -845,18 +1031,31 @@ void fragDeferred (
 
     UNITY_APPLY_DITHER_CROSSFADE(i.pos.xy);
     half wetness = ApplyWetnessPre(i.damageMapUV.xy);
+    ApplySnowEffectsPre(i.tangentToWorldAndPackedData[2].xyz);
+
+    float2 unparallaxedUV = i.tex.zw;
 
     FRAGMENT_SETUP(s)
     UNITY_SETUP_INSTANCE_ID(i);
+
+#if defined(_TREE_MANUFACTURE) || defined(_FLAG)
+    if(side < 0.0)
+        s.normalWorld = -s.normalWorld;
+#endif
+
 	ApplyDamage(i.tex.xy, i.damageMapUV.xy, s);
 	ApplyWetness(i.damageMapUV.xy, wetness, s);
+    half3 translucency = 0.0;
+    half occlusion = Occlusion(i.tex.xy);
+    ApplyTreeEffects(s, i.ambientOrLightmapUV.w, translucency, occlusion, i.tex.xy);
+    ApplyMegatex(s, occlusion, float4(i.tex.xy, lerp(i.tex.zw, unparallaxedUV, 0.65)), IN_WORLDPOS(i));
+    ApplySnowEffects(s, occlusion, i.tex.xy);
 
     // no analytic lights in this pass
     UnityLight dummyLight = DummyLight ();
     half atten = 1;
 
     // only GI
-    half occlusion = Occlusion(i.tex.xy);
 #if UNITY_ENABLE_REFLECTION_BUFFERS
     bool sampleReflectionsInDeferred = false;
 #else
@@ -868,7 +1067,9 @@ void fragDeferred (
     half3 emissiveColor = UNITY_BRDF_PBS (s.diffColor, s.specColor, s.oneMinusReflectivity, s.smoothness, s.normalWorld, -s.eyeVec, gi.light, gi.indirect).rgb;
 
     #ifdef _EMISSION
-        emissiveColor += Emission (i.tex.xy);
+        half3 emission = Emission (i.tex.xy);
+		ApplyLighthouseEffect(emission, i.tex.zw);
+		emissiveColor += emission;
     #endif
 
     #ifndef UNITY_HDR_ON
@@ -885,12 +1086,46 @@ void fragDeferred (
     UnityStandardDataToGbuffer(data, outGBuffer0, outGBuffer1, outGBuffer2);
 
     // Emissive lighting buffer
-    outEmission = half4(emissiveColor, 1);
+    outEmission = half4(emissiveColor, _SubsurfaceScatteringIntensity);
 
-    // Baked direct lighting occlusion if any
-    #if defined(SHADOWS_SHADOWMASK) && (UNITY_ALLOWED_MRT_COUNT > 4)
-        outShadowMask = UnityGetRawBakedOcclusions(i.ambientOrLightmapUV.xy, IN_WORLDPOS(i));
+#if defined(_SUBSURFACE_SCATTERING_NORMALMAP)
+    outEmission.a = tex2D(_BumpMap, i.tex.xy).b;
+#endif
+
+#if defined(DECAL_FULL)
+    outDecal = half4(outGBuffer1.a, s.alpha * _PerChannelAlpha.y, 1.0, 1.0);
+    outGBuffer0.a = s.alpha * _PerChannelAlpha.x;
+    outGBuffer1.a = s.alpha * _PerChannelAlpha.y;
+    outGBuffer2.a = s.alpha * _PerChannelAlpha.z;
+    outEmission.a = s.alpha * _PerChannelAlpha.w;
+#elif defined(DECAL)
+    #if defined(_ALPHATEST_ON)
+        outGBuffer2.a = (s.alpha - _Cutoff) / (1.0 - _Cutoff);
+    #else
+        outGBuffer2.a = s.alpha;
     #endif
+#endif
+
+#if defined(HAIR)
+    outGBuffer0.a = s.alpha;
+    outGBuffer2.a = s.alpha;
+    outEmission.a = s.alpha;
+#endif
+
+#if defined(IMPOSTOR_BAKE)
+    outGBuffer0.a = s.alpha;
+
+    float depth_temp = ( -1.0 / UNITY_MATRIX_P[2].z );
+    outGBuffer2.a = (i.depth + depth_temp) / depth_temp;
+
+#if defined(_SNOW_SUPPORT_ON)
+    outEmission.g = saturate((i.tangentToWorldAndPackedData[2].y - 0.5) * 8.0);         // snow factor
+#else
+    outEmission.g = 0.0;
+#endif
+
+    outEmission.a = occlusion;
+#endif
 }
 
 
@@ -919,5 +1154,109 @@ inline UnityGI FragmentGI (
 {
     return FragmentGI (posWorld, occlusion, i_ambientOrLightmapUV, atten, smoothness, normalWorld, eyeVec, light, true);
 }
+
+#if defined(TESSELATION)
+
+#include "Tessellation.cginc"
+
+float _TesselationFactor;
+
+struct UnityTessellationFactors {
+	float edge[4]  : SV_TessFactor;
+	float inside[2] : SV_InsideTessFactor;
+};
+
+[UNITY_domain("quad")]
+[UNITY_partitioning("integer")]
+[UNITY_outputtopology("triangle_cw")]
+[UNITY_patchconstantfunc("hsconst")]
+[UNITY_outputcontrolpoints(4)]
+TesselatorVertexInput hs_surf(InputPatch<TesselatorVertexInput, 4> v, uint id : SV_OutputControlPointID)
+{
+	return v[id];
+}
+
+UnityTessellationFactors hsconst(InputPatch<TesselatorVertexInput, 4> v)
+{
+	UnityTessellationFactors o;
+
+	float4 tess = float4(v[0].tessFactor, v[1].tessFactor, v[2].tessFactor, v[3].tessFactor);
+	o.edge[0] = 0.5 * (tess.x + tess.w);
+	o.edge[1] = 0.5 * (tess.x + tess.y);
+	o.edge[2] = 0.5 * (tess.y + tess.z);
+	o.edge[3] = 0.5 * (tess.z + tess.w);
+	o.inside[0] = o.inside[1] = (o.edge[0] + o.edge[1] + o.edge[2] + o.edge[3]) * 0.25;
+
+	return o;
+}
+
+#define DOMAIN_INTERPOLATE(fieldName) v.fieldName = lerp(\
+		lerp(patch[0].fieldName, patch[1].fieldName, UV.x), \
+		lerp(patch[3].fieldName, patch[2].fieldName, UV.x), \
+		UV.y)
+
+float3 pt_pi(float3 q, float3 p, float3 n)
+{
+    return q + dot(q - p, n) * n;
+}
+
+[UNITY_domain("quad")]
+TESS_OUTPUT ds_surf (UnityTessellationFactors tessFactors, const OutputPatch<TesselatorVertexInput, 4> patch, float2 UV : SV_DomainLocation)
+{
+	VertexInput v;
+
+    DOMAIN_INTERPOLATE(vertex);
+    DOMAIN_INTERPOLATE(normal);
+    DOMAIN_INTERPOLATE(uv0);
+    DOMAIN_INTERPOLATE(uv1);
+
+#if defined(_TREE) || defined(_BILLBOARD)
+
+    DOMAIN_INTERPOLATE(color);
+    DOMAIN_INTERPOLATE(uv2);
+
+#elif defined(DYNAMICLIGHTMAP_ON) || defined(UNITY_PASS_META) || defined(_DAMAGE_MAP) || defined(_SIMPLE_WATER)
+    
+    DOMAIN_INTERPOLATE(uv2);
+
+#endif
+
+#ifdef _TANGENT_TO_WORLD
+    DOMAIN_INTERPOLATE(tangent);
+#endif
+
+#if defined(UNITY_INSTANCING_ENABLED) || defined(UNITY_PROCEDURAL_INSTANCING_ENABLED) || defined(UNITY_STEREO_INSTANCING_ENABLED)
+    v.instanceID = patch[0].instanceID;
+#endif
+
+    v.vertex.xyz = (1.0 - UV.x) * (1.0 - UV.y) * pt_pi(v.vertex.xyz, patch[0].vertex.xyz, patch[0].normal)
+        + UV.x * (1.0 - UV.y) * pt_pi(v.vertex.xyz, patch[1].vertex.xyz, patch[1].normal)
+        + (1.0 - UV.x) * UV.y * pt_pi(v.vertex.xyz, patch[3].vertex.xyz, patch[3].normal)
+        + UV.x * UV.y * pt_pi(v.vertex.xyz, patch[2].vertex.xyz, patch[2].normal);
+
+	TESS_OUTPUT o = POST_TESS_VERT (v);
+	return o;
+}
+
+TesselatorVertexInput tessvert_surf (VertexInput v)
+{
+	TesselatorVertexInput o;
+	o.vertex = v.vertex;
+	o.tessFactor = UnityCalcDistanceTessFactor(o.vertex, _ProjectionParams.y, _ProjectionParams.z, _TesselationFactor);
+    o.normal = v.normal;
+    o.uv0 = v.uv0;
+    o.uv1 = v.uv1;
+#if defined(_TREE) || defined(_BILLBOARD)
+    o.color = v.color;
+    o.uv2 = v.uv2;
+#elif defined(DYNAMICLIGHTMAP_ON) || defined(UNITY_PASS_META) || defined(_DAMAGE_MAP) || defined(_SIMPLE_WATER)
+    o.uv2 = v.uv2;
+#endif
+#ifdef _TANGENT_TO_WORLD
+    o.tangent = v.tangent;
+#endif
+	return o;
+}
+#endif
 
 #endif // UNITY_STANDARD_CORE_INCLUDED

@@ -11,6 +11,7 @@ using UBOAT.Game.Core.Mods;
 using UnityEditorInternal;
 #endif
 using UnityEditor;
+using UnityEditor.Build.Pipeline;
 using UnityEngine;
 using Object = System.Object;
 
@@ -18,7 +19,7 @@ namespace UBOAT.Editor.ModdingTools
 {
 	public class ModdingTools
 	{
-		private static readonly string[] gameAssemblies = { "Editor Assemblies/com.dws.common.Editor.dll", "Editor Assemblies/com.uboat.editor.dll", "Editor Assemblies/com.unity.navmeshcomponents.Editor.dll", "com.dws.pipeline.Runtime.dll", "com.playway.water.Runtime.dll", "com.steamworks.net.dll", "com.uboat.dependencies.dll", "com.uboat.game.dll", "com.uboat.modapi.dll", "com.uboat.rendering.dll", "com.unity.postprocessing.Runtime.dll", "com.unity.postprocessingv1.Runtime.dll", "com.unity.standardassets.Runtime.dll", "FastExcel.dll", "RoslynCSharp.dll", "RoslynCSharp.Compiler.dll", "UBOAT.App.Console.dll", "0Harmony.dll", "TeximpNet.dll", "Trivial.CodeSecurity.dll", "Microsoft.CodeAnalysis.dll", "Microsoft.CodeAnalysis.CSharp.dll", "NvAPIWrapper.dll", "Trivial.Mono.Cecil.dll", "System.Collections.Immutable.dll", "System.Reflection.Metadata.dll", "System.Threading.Tasks.Extensions.dll" };
+		private static readonly string[] gameAssemblies = { "Editor Assemblies/com.dws.common.Editor.dll", "Editor Assemblies/com.uboat.editor.dll", "Editor Assemblies/com.playway.water.Editor.dll", "Editor Assemblies/com.unity.navmeshcomponents.Editor.dll", "com.dws.pipeline.Runtime.dll", "com.playway.water.Runtime.dll", "com.rlabrecque.steamworks.net.dll", "com.uboat.dependencies.dll", "com.uboat.game.dll", "com.uboat.modapi.dll", "com.uboat.rendering.dll", "com.unity.postprocessing.Runtime.dll", "com.unity.postprocessingv1.Runtime.dll", "com.unity.standardassets.Runtime.dll", "FastExcel.dll", "RoslynCSharp.dll", "RoslynCSharp.Compiler.dll", "UBOAT.App.Console.dll", "0Harmony.dll", "TeximpNet.dll", "Esprima.dll", "Jint.dll", "Trivial.CodeSecurity.dll", "Microsoft.CodeAnalysis.dll", "Microsoft.CodeAnalysis.CSharp.dll", "NvAPIWrapper.dll", "Trivial.Mono.Cecil.dll", "System.Collections.Immutable.dll", "System.Reflection.Metadata.dll", "System.Threading.Tasks.Extensions.dll", "Discord.dll", "com.unistorm.dll", "EasyRoads3Dv3.dll", "DelaunayER.dll", "Paroxe.PDFRenderer.dll", "System.Runtime.CompilerServices.Unsafe.dll", "ZString.dll", "UniTask.dll", "com.alteregogames.aeg-fsr.Runtime.dll" };
 		private static readonly string[] editorAssemblies = { };
 
 		[InitializeOnLoadMethod]
@@ -48,7 +49,8 @@ namespace UBOAT.Editor.ModdingTools
 		{
 			EditorApplication.update -= OpenModdingWelcomeWindow;
 
-			ModdingWelcomeWindow.Open();
+			if(!EditorWindow.HasOpenInstances<ModdingWelcomeWindow>())
+				ModdingWelcomeWindow.Open();
 		}
 
 		private static void EditorApplicationOnPlayModeStateChanged(PlayModeStateChange stateChange)
@@ -340,7 +342,7 @@ namespace UBOAT.Editor.ModdingTools
 				assetBundleBuilds.Add(buildInfo);
 			}
 
-			BuildPipeline.BuildAssetBundles(assetBundleDirectory, assetBundleBuilds.ToArray(), BuildAssetBundleOptions.UncompressedAssetBundle | BuildAssetBundleOptions.DisableLoadAssetByFileNameWithExtension, BuildTarget.StandaloneWindows);
+			CompatibilityBuildPipeline.BuildAssetBundles(assetBundleDirectory, assetBundleBuilds.ToArray(), BuildAssetBundleOptions.UncompressedAssetBundle | BuildAssetBundleOptions.DisableLoadAssetByFileNameWithExtension, BuildTarget.StandaloneWindows);
 
 			var files = Directory.GetFiles(assetBundleDirectory);
 
@@ -423,30 +425,30 @@ namespace UBOAT.Editor.ModdingTools
 			string targetJsonPath = Path.Combine(targetModDir, "Manifest.json");
 			string projectJsonPath = Path.Combine(projectModDir, "Manifest.json");
 
-			// if (File.Exists(targetJsonPath) && File.Exists(projectJsonPath))
-			// {
-			// 	string targetJson = File.ReadAllText(targetJsonPath);
-			// 	var targetManifest = JsonUtility.FromJson<ModManager.ModManifest>(targetJson);
-			//
-			// 	if (targetManifest.steamFileId != 0)
-			// 	{
-			// 		string projectJson = File.ReadAllText(projectJsonPath);
-			// 		var projectManifest = JsonUtility.FromJson<ModManager.ModManifest>(projectJson);
-			//
-			// 		var asmDefFiles = Directory.GetFiles(projectModDir, "*.asmdef");
-			// 		var assemblyDefinitionAsset = asmDefFiles.Length != 0 ? AssetDatabase.LoadAssetAtPath(asmDefFiles[0], typeof(AssemblyDefinitionAsset)) : null;
-			// 		string assemblyName = assemblyDefinitionAsset ? assemblyDefinitionAsset.name : null;
-			//
-			// 		if (targetManifest.steamFileId != projectManifest.steamFileId || (projectManifest.assemblyName != assemblyName))
-			// 		{
-			// 			projectManifest.steamFileId = targetManifest.steamFileId;
-			// 			projectManifest.assemblyName = assemblyName;
-			//
-			// 			projectJson = JsonUtility.ToJson(projectManifest, true);
-			// 			File.WriteAllText(projectJsonPath, projectJson);
-			// 		}
-			// 	}
-			// }
+			if (File.Exists(targetJsonPath) && File.Exists(projectJsonPath))
+			{
+				string targetJson = File.ReadAllText(targetJsonPath);
+				var targetManifest = JsonUtility.FromJson<ModManager.ModManifest>(targetJson);
+
+				if (targetManifest.steamFileId != 0)
+				{
+					string projectJson = File.ReadAllText(projectJsonPath);
+					var projectManifest = JsonUtility.FromJson<ModManager.ModManifest>(projectJson);
+
+					var asmDefFiles = Directory.GetFiles(projectModDir, "*.asmdef");
+					var assemblyDefinitionAsset = asmDefFiles.Length != 0 ? AssetDatabase.LoadAssetAtPath(asmDefFiles[0], typeof(AssemblyDefinitionAsset)) : null;
+					string assemblyName = assemblyDefinitionAsset ? assemblyDefinitionAsset.name : null;
+
+					if (targetManifest.steamFileId != projectManifest.steamFileId || (projectManifest.assemblyName != assemblyName))
+					{
+						projectManifest.steamFileId = targetManifest.steamFileId;
+						projectManifest.assemblyName = assemblyName;
+
+						projectJson = JsonUtility.ToJson(projectManifest, true);
+						File.WriteAllText(projectJsonPath, projectJson);
+					}
+				}
+			}
 		}
 
 		private static void DeleteDirectoryContentsExceptCopiedAssemblies(string targetDirectory, List<string> copiedAssemblies)

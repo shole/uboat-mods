@@ -76,6 +76,9 @@ struct VertexInput
     float4 vertex   : POSITION;
     float3 normal   : NORMAL;
     float2 uv0      : TEXCOORD0;
+#if defined(_FLAG)
+	uint id			: SV_VertexID;
+#endif
     UNITY_VERTEX_INPUT_INSTANCE_ID
 };
 
@@ -114,6 +117,23 @@ void vertShadowCaster (VertexInput v
     #endif
 )
 {
+#if defined(_FLAG)
+	float frameIndex = (_Time.y * _FlagAnimationSpeed) % _FlagAnimationFrameCount;
+	int frameIndexLB = floor(frameIndex);
+	int frameIndexUB = ceil(frameIndex);
+
+	if(frameIndexUB == _FlagAnimationFrameCount)
+		frameIndexUB = 0;
+
+	float lerpFactor = frameIndex - frameIndexLB;
+	int vertexID = v.id;
+
+	int vbIndexLB = frameIndexLB * _FlagAnimationVertexCount + vertexID;
+	int vbIndexUB = frameIndexUB * _FlagAnimationVertexCount + vertexID;
+
+	v.vertex.xyz = lerp(_FlagAnimation[vbIndexLB].Position.xyz, _FlagAnimation[vbIndexUB].Position.xyz, lerpFactor);
+#endif
+
 #if defined(_SIMPLE_WATER)
 	float4 posWorld = mul(unity_ObjectToWorld, v.vertex);
 	v.vertex.y -= max(0.0, posWorld.y - _ClipHeight);

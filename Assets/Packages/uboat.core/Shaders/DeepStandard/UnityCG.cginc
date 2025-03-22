@@ -288,7 +288,7 @@ float3 Shade4PointLights (
     return col;
 }
 
-#if defined(SPEEDTREE_SHADER)
+#if defined(SPEEDTREE_SHADER) && !defined(BILLBOARD_SHADER)
 // Used in Vertex pass: Calculates diffuse lighting from lightCount lights. Specifying true to spotLight is more expensive
 // to calculate but lights are treated as spot lights otherwise they are treated as point lights.
 float3 ShadeVertexLightsFull (float4 vertex, float3 normal, int lightCount, bool spotLight)

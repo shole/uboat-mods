@@ -1,4 +1,4 @@
-Shader "Hidden/TerrainEngine/Splatmap/Standard-AddPass" {
+Shader "Hidden/TerrainEngine/Splatmap/Standard-AddPass (DWS)" {
 	Properties {
 		// set by terrain engine
 		[HideInInspector] _Control ("Control (RGBA)", 2D) = "red" {}
@@ -29,12 +29,14 @@ Shader "Hidden/TerrainEngine/Splatmap/Standard-AddPass" {
 
 		CGPROGRAM
 		#pragma surface surf Standard decal:add vertex:SplatmapVert finalcolor:SplatmapFinalColor finalgbuffer:SplatmapFinalGBuffer fullforwardshadows
-		#pragma multi_compile_fog
-		#pragma target 3.0
+		#pragma instancing_options assumeuniformscaling nomatrices nolightprobe nolightmap forwardadd
+		#pragma multi_compile USE_CUSTOM_AMBIENT
+		#define UNITY_HDR_ON 1
+		#pragma target 4.0
 		// needs more than 8 texcoords
 		#pragma exclude_renderers gles
 
-		#pragma multi_compile __ _TERRAIN_NORMAL_MAP
+		#pragma shader_feature_local _NORMALMAP
 
 		#define TERRAIN_SPLAT_ADDPASS
 		#define TERRAIN_STANDARD_SHADER

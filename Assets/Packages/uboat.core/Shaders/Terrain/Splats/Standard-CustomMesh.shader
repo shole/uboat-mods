@@ -126,7 +126,7 @@ Shader "Nature/Terrain/Standard (DWS) - Custom Mesh" {
 
 		sampler2D _Control;
 		float4 _Control_ST;
-		float4 _TerrainOffset;
+		//float4 _TerrainOffset;
 		float _NormalScale;
 		float _Parallax;
 		sampler2D _Splat0,_Splat1,_Splat2,_Splat3;
@@ -146,7 +146,7 @@ Shader "Nature/Terrain/Standard (DWS) - Custom Mesh" {
 		{
 			UNITY_INITIALIZE_OUTPUT(Input, data);
 			data.tc_Control = TRANSFORM_TEX(v.texcoord, _Control);	// Need to manually transform uv here, as we choose not to use 'uv' prefix for this texcoord.
-			v.vertex += _TerrainOffset;
+			//v.vertex += _TerrainOffset;
 		#if defined(HEIGHTMAP)
 			v.texcoord.xy = (v.texcoord.xy * (_Heightmap_TexelSize.zw - 1) + 0.5) / _Heightmap_TexelSize.zw;
 

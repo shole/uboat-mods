@@ -11,7 +11,6 @@ Shader "Standard (DWS)"
 
         _Glossiness("Smoothness", Range(0.0, 1.0)) = 0.5
         _GlossMapScale("Smoothness Scale", Range(0.0, 2.0)) = 1.0
-        [Enum(Metallic Alpha,0,Albedo Alpha,1)] _SmoothnessTextureChannel ("Smoothness texture channel", Float) = 0
 
         [Gamma] _Metallic("Metallic", Range(0.0, 1.0)) = 0.0
         _MetallicGlossMap("Metallic", 2D) = "white" {}
@@ -26,7 +25,7 @@ Shader "Standard (DWS)"
         _ParallaxMap ("Height Map", 2D) = "black" {}
 
         _OcclusionStrength("Strength", Range(0.0, 1.0)) = 1.0
-        _OcclusionMap("Occlusion", 2D) = "white" {}
+		_MipMapBiasMultiplier("MipMap Bias Multiplier", Range(0.0, 1.0)) = 1.0
 
         _EmissionColor("Color", Color) = (0,0,0)
         _EmissionMap("Emission", 2D) = "white" {}
@@ -41,8 +40,18 @@ Shader "Standard (DWS)"
 		_DamageMap("", 2D) = "white" {}
 		_DissolveMaskScale("Dissolve Mask Scale", Float) = 0.25
 
+        _SubsurfaceScatteringIntensity("Subsurface Scattering Intensity", Float) = 0.0
+
 		[PerRendererData] _WetnessBiasScale("", Vector) = (0.0, 0.0, 0.0, 0.0)
 		_WetnessMap("", 2D) = "white" {}
+
+	    _TumbleStrength						("Tumble Strength", Range(-1,1)) = 0
+	    _TumbleFrequency					("Tumble Frequency", Range(0,4)) = 1
+	    _TimeOffset							("Time Offset", Range(0,2)) = 0.25
+	    
+	    //[Toggle(_EMISSION)] _EnableLeafTurbulence("Enable Leaf Turbulence", Float) = 0.0
+	    _LeafTurbulence 					("Leaf Turbulence", Range(0,4)) = 0.2
+	    _EdgeFlutterInfluence				("Edge Flutter Influence", Range(0,1)) = 0.25
 
 		_DamageMapPreferredResolution("", Float) = 4096
 		_WetnessMapPreferredResolution("", Float) = 512
@@ -94,10 +103,11 @@ Shader "Standard (DWS)"
             //#pragma shader_feature _ _GLOSSYREFLECTIONS_OFF
             #pragma shader_feature _PARALLAXMAP
 			#pragma shader_feature COMPENSATE_EARTH_CURVATURE_PER_VERTEX
+            #pragma shader_feature _WETNESS_SUPPORT_ON
+            #pragma shader_feature _SNOW_SUPPORT_ON
 
 			// EDIT START
 			#pragma multi_compile _ _DISSOLVE _DAMAGE_MAP
-			#pragma multi_compile _ _WETNESS_SUPPORT_ON
 			#pragma multi_compile _ USE_CUSTOM_AMBIENT
 			#pragma multi_compile __ DYNAMICLIGHTMAP_ON
 			// EDIT END
@@ -134,6 +144,28 @@ Shader "Standard (DWS)"
 
             #pragma vertex vertBase
             #pragma fragment fragForwardBaseSRP
+            #include "UnityStandardCoreForward.cginc"
+
+            ENDCG
+        }
+        // ------------------------------------------------------------------
+        //  ForwardBase pass used for shader replacement
+        Pass
+        {
+            Name "FORWARD"
+            Tags { "LightMode" = "ForwardBase" }
+
+            Blend Zero One
+            ZWrite Off
+
+            CGPROGRAM
+            #pragma target 3.0
+
+            #pragma skip_variants SHADOWS_SOFT DIRLIGHTMAP_COMBINED
+
+            #pragma vertex vertBase
+            #pragma fragment fragBlank
+
             #include "UnityStandardCoreForward.cginc"
 
             ENDCG
@@ -199,13 +231,14 @@ Shader "Standard (DWS)"
 			#pragma shader_feature ___ _DETAIL_MULX2
 			#pragma shader_feature _PARALLAXMAP
 			#pragma shader_feature COMPENSATE_EARTH_CURVATURE_PER_VERTEX
+            #pragma shader_feature _WETNESS_SUPPORT_ON
+            #pragma shader_feature _SNOW_SUPPORT_ON
 
 			// EDIT START
 			#pragma multi_compile _ _DISSOLVE _DAMAGE_MAP
-			#pragma multi_compile _ _WETNESS_SUPPORT_ON
 			#pragma multi_compile _ USE_CUSTOM_AMBIENT
-			////#pragma multi_compile _ DIRLIGHTMAP_COMBINED
-			//#pragma multi_compile _ DYNAMICLIGHTMAP_ON			// it's also inside multi_compile_prepassfinal
+			//#pragma multi_compile _ DIRLIGHTMAP_COMBINED
+			//#pragma shader_feature _ DYNAMICLIGHTMAP_ON			// it's also inside multi_compile_prepassfinal
 			//#pragma multi_compile _ LIGHTMAP_ON
 			// EDIT END
 
@@ -261,6 +294,7 @@ Shader "Standard (DWS)"
 
 			CGPROGRAM
 			#pragma multi_compile _ _DISSOLVE
+			#pragma multi_compile _ USE_CUSTOM_AMBIENT
 			//#pragma multi_compile _ _DEEP_PIPELINE
 
 			#define _DEEP_PIPELINE 1

@@ -11,6 +11,8 @@
 
 #include "ShadowContext.hlsl"
 
+float _DirLightShadowStrength;
+
 // This is an example of how to override the default dynamic resource dispatcher
 // by hardcoding the resources used and calling the shadow sampling routines that take an explicit texture and sampler.
 // It is the responsibility of the author to make sure that ShadowContext.hlsl binds the correct texture to the right slot,
@@ -57,7 +59,7 @@ float GetDirectionalShadowAttenuation( ShadowContext shadowContext, float3 posit
 	uint                    algo = SHADOW_DISPATCH_DIR_ALG;
 #endif
 
-	return EvalShadow_CascadedDepth_Blend( shadowContext, algo, tex, compSamp, positionWS, normalWS, shadowDataIndex, L );
+	return lerp(1.0, EvalShadow_CascadedDepth_Blend( shadowContext, algo, tex, compSamp, positionWS, normalWS, shadowDataIndex, L ), _DirLightShadowStrength);
 }
 
 float GetDirectionalShadowAttenuation( ShadowContext shadowContext, float3 positionWS, float3 normalWS, int shadowDataIndex, float3 L, float2 positionSS )

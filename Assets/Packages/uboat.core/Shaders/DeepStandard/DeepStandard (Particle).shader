@@ -11,7 +11,6 @@ Shader "Standard (DWS, Particle)"
 
         _Glossiness("Smoothness", Range(0.0, 1.0)) = 0.5
         _GlossMapScale("Smoothness Scale", Range(0.0, 1.0)) = 1.0
-        [Enum(Metallic Alpha,0,Albedo Alpha,1)] _SmoothnessTextureChannel ("Smoothness texture channel", Float) = 0
 
         [Gamma] _Metallic("Metallic", Range(0.0, 1.0)) = 0.0
         _MetallicGlossMap("Metallic", 2D) = "white" {}
@@ -26,7 +25,7 @@ Shader "Standard (DWS, Particle)"
         _ParallaxMap ("Height Map", 2D) = "black" {}
 
         _OcclusionStrength("Strength", Range(0.0, 1.0)) = 1.0
-        _OcclusionMap("Occlusion", 2D) = "white" {}
+		_MipMapBiasMultiplier("MipMap Bias Multiplier", Range(0.0, 1.0)) = 1.0
 
         _EmissionColor("Color", Color) = (0,0,0)
         _EmissionMap("Emission", 2D) = "white" {}
@@ -43,6 +42,7 @@ Shader "Standard (DWS, Particle)"
 
 		_LightDesaturation("Light Desaturation", Range(0.0, 1.0)) = 0.0
 		_LightingSoftness("Lighting Softness", Range(0.0, 1.0)) = 0.2
+		_ParticleFogFactor("Particle Fog Factor", Range(0.0, 1.25)) = 1.25
 
 		_SubsurfaceScatteringColor("Subsurface Scattering Color", Color) = (0, 0, 0, 0)
 
@@ -114,6 +114,7 @@ Shader "Standard (DWS, Particle)"
 
 			#define UNITY_HDR_ON 1
 			#define PARTICLE_SHADER 1
+			#define _GLOSSYREFLECTIONS_OFF 1
 
 			#define LIGHTPROBE_SH 1
 			#if defined(USE_CUSTOM_AMBIENT)
@@ -172,6 +173,8 @@ Shader "Standard (DWS, Particle)"
 			#pragma multi_compile _ USE_CUSTOM_AMBIENT
 
 			#define UNITY_HDR_ON 1
+			#define PARTICLE_SHADER 1
+			#define _GLOSSYREFLECTIONS_OFF 1
 
 			#define LIGHTPROBE_SH 1
 			#if defined(USE_CUSTOM_AMBIENT)
@@ -219,6 +222,8 @@ Shader "Standard (DWS, Particle)"
 			// EDIT START
 			#pragma multi_compile _ _DISSOLVE
 			#define UNITY_HDR_ON 1
+			#define PARTICLE_SHADER 1
+			#define _GLOSSYREFLECTIONS_OFF 1
 			// EDIT END
 
 			#pragma vertex vertShadowCaster

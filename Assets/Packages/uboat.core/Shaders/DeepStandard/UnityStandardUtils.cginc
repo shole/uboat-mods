@@ -220,10 +220,6 @@ half3 ShadeSHPerPixel (half3 normal, half3 ambient, float3 worldPos)
         #endif
     #endif
 
-	ambient_contrib = SHEvalLinearL0L1(half4(normal, 1.0));
-	ambient_contrib += SHEvalLinearL2(half4(normal, 1.0));
-
-            ambient += max(half3(0, 0, 0), ambient_contrib);
     return ambient;
 }
 

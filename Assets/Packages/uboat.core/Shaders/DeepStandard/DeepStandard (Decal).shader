@@ -11,7 +11,6 @@ Shader "Standard (DWS, Decal)"
 
         _Glossiness("Smoothness", Range(0.0, 1.0)) = 0.5
         _GlossMapScale("Smoothness Scale", Range(0.0, 1.0)) = 1.0
-        [Enum(Metallic Alpha,0,Albedo Alpha,1)] _SmoothnessTextureChannel ("Smoothness texture channel", Float) = 0
 
         [Gamma] _Metallic("Metallic", Range(0.0, 1.0)) = 0.0
         _MetallicGlossMap("Metallic", 2D) = "white" {}
@@ -26,7 +25,7 @@ Shader "Standard (DWS, Decal)"
         _ParallaxMap ("Height Map", 2D) = "black" {}
 
         _OcclusionStrength("Strength", Range(0.0, 1.0)) = 1.0
-        _OcclusionMap("Occlusion", 2D) = "white" {}
+		_MipMapBiasMultiplier("MipMap Bias Multiplier", Range(0.0, 1.0)) = 1.0
 
         _EmissionColor("Color", Color) = (0,0,0)
         _EmissionMap("Emission", 2D) = "white" {}
@@ -37,7 +36,11 @@ Shader "Standard (DWS, Decal)"
         _DetailNormalMapScale("Scale", Float) = 1.0
         _DetailNormalMap("Normal Map", 2D) = "bump" {}
 
+        _DamageMask("", 2D) = "black" {}
+        _DamageMap("", 2D) = "white" {}
 		_DissolveMaskScale("Dissolve Mask Scale", Float) = 0.25
+
+        _SubsurfaceScatteringIntensity("Subsurface Scattering Intensity", Float) = 0.0
 
 		[PerRendererData] _WetnessBiasScale("", Vector) = (0.0, 0.0, 0.0, 0.0)
 		_WetnessMap("", 2D) = "white" {}
@@ -53,6 +56,10 @@ Shader "Standard (DWS, Decal)"
         [HideInInspector] _Mode ("__mode", Float) = 0.0
         [HideInInspector] _SrcBlend ("__src", Float) = 1.0
         [HideInInspector] _DstBlend ("__dst", Float) = 0.0
+        [HideInInspector] _AlbedoSrcBlend ("__srcAlbedo", Float) = 1.0
+        [HideInInspector] _EmissionSrcBlend ("__srcEmission", Float) = 1.0
+        [HideInInspector] _EmissionDstBlend ("__dstEmission", Float) = 0.0
+        [HideInInspector] _DecalModeAlpha ("__decalModeAlpha", Float) = 1.0
         [HideInInspector] _ZWrite ("__zw", Float) = 1.0
     }
 
@@ -160,9 +167,9 @@ Shader "Standard (DWS, Decal)"
             Name "FORWARD SRP"
             Tags { "LightMode" = "ForwardSRP" }
 
-			Blend 0[_SrcBlend][_DstBlend]
+			Blend 0 [_SrcBlend] [_DstBlend]
 			BlendOp 0 Add, Add
-			Blend 1[_SrcBlend][_DstBlend]
+			Blend 1 [_SrcBlend] [_DstBlend]
 			BlendOp 1 Add, Add
             ZWrite [_ZWrite]
 			ZTest LEqual
@@ -213,6 +220,7 @@ Shader "Standard (DWS, Decal)"
 			// end
 
 			#define UNITY_HDR_ON 1
+            #define DECAL 1
 
             //#pragma multi_compile_fwdbase
             //#pragma multi_compile_fog
@@ -270,8 +278,18 @@ Shader "Standard (DWS, Decal)"
 
 			Offset -1, -1
 
+            Blend 0 [_AlbedoSrcBlend] Zero, [_DecalModeAlpha] Zero
+			BlendOp 0 Add, Add
+            Blend 1 [_EmissionSrcBlend] [_EmissionDstBlend], [_DecalModeAlpha] Zero
+            BlendOp 1 Add, Add
+            Blend 2 SrcAlpha OneMinusSrcAlpha
+            Blend 3 [_EmissionSrcBlend] [_EmissionDstBlend]
+
+            ZTest LEqual
+            ZWrite Off
+
             CGPROGRAM
-            #pragma target 3.0
+            #pragma target 4.5
             #pragma exclude_renderers nomrt
 
 
@@ -285,20 +303,34 @@ Shader "Standard (DWS, Decal)"
             #pragma shader_feature _ _SPECULARHIGHLIGHTS_OFF
             #pragma shader_feature ___ _DETAIL_MULX2
             #pragma shader_feature _PARALLAXMAP
+            #pragma shader_feature COMPENSATE_EARTH_CURVATURE_PER_VERTEX
 
 			// EDIT START
 			#pragma multi_compile _ _DISSOLVE
+            #pragma multi_compile _ USE_CUSTOM_AMBIENT
 			// EDIT END
 
 			#define UNITY_HDR_ON 1
 
 			// prepassfinal
-			#pragma multi_compile _ LIGHTPROBE_SH
-			#pragma multi_compile _ SHADOWS_SHADOWMASK
-			#if defined(SHADOWS_SHADOWMASK) && !defined(LIGHTPROBE_SH)
-				#define LIGHTMAP_ON 1
-				#define DIRLIGHTMAP_COMBINED 1
-				#define DYNAMICLIGHTMAP_ON 1
+			//#pragma multi_compile _ LIGHTPROBE_SH
+			//#pragma multi_compile _ SHADOWS_SHADOWMASK
+			//#if defined(DYNAMICLIGHTMAP_ON) || defined(LIGHTMAP_ON)
+			//	#define DIRLIGHTMAP_COMBINED 1
+			//#endif
+			#if !defined(DYNAMICLIGHTMAP_ON)
+				#define LIGHTPROBE_SH 1
+			#endif
+			#if defined(USE_CUSTOM_AMBIENT) && !defined(DYNAMICLIGHTMAP_ON)
+				#if !defined(LIGHTPROBE_SH)
+					#define LIGHTPROBE_SH 1
+				#endif
+				#if defined(UNITY_LIGHT_PROBE_PROXY_VOLUME)
+					#undef UNITY_INSTANCED_SH
+				#endif
+				#if defined(UNITY_LIGHT_PROBE_PROXY_VOLUME)
+					#undef UNITY_LIGHT_PROBE_PROXY_VOLUME
+				#endif
 			#endif
 			// end
 
@@ -306,6 +338,9 @@ Shader "Standard (DWS, Decal)"
             #pragma multi_compile_instancing
             // Uncomment the following line to enable dithering LOD crossfade. Note: there are more in the file to uncomment for other passes.
             //#pragma multi_compile _ LOD_FADE_CROSSFADE
+
+            #define DEFERRED_PASS 1
+            #define DECAL 1
 
             #pragma vertex vertDeferred
             #pragma fragment fragDeferred
@@ -317,9 +352,11 @@ Shader "Standard (DWS, Decal)"
 
 		// EDITS START
 
-		Pass
+		/*Pass
 		{
 			Tags{ "LightMode" = "MotionVectors" }
+
+            Offset -1, -1
 
 			ZTest LEqual
 			Cull Back
@@ -330,13 +367,16 @@ Shader "Standard (DWS, Decal)"
 
 			#define _DEEP_PIPELINE 1
 			#define UNITY_HDR_ON 1
+            #define DECAL 1
+
+            #pragma multi_compile_instancing
 
 			#pragma vertex VertMotionVectors
 			#pragma fragment FragMotionVectors
 
 			#include "UnityStandardCore.cginc"
 			ENDCG
-		}
+		}*/
 
 		// EDITS END
 
@@ -492,5 +532,5 @@ Shader "Standard (DWS, Decal)"
 
 
     FallBack "VertexLit"
-    CustomEditor "StandardShaderGUI"
+    CustomEditor "StandardDWSShaderGUI"
 }

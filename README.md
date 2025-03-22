@@ -9,12 +9,13 @@ This repository contains the following mods:
 * No Discipline - disables the discipline feature from the game
 * No Discipline (Task Version) - same as above, implemented as a background task, for redundancy in case other fails
 # usage
-1. using unity 2019.4.29f1
+1. using unity 2021.3.33f1
 2. create new unity mod from uboat launcher
-3. open it and hit "tools/update game assemblies"
-4. git clone this repo (or download zip)
-5. drop into the unity mod folder, overwriting things
-6. hope stuff still works
+3. set UBOAT install location in preferences/UBOAT modding
+4. open it and hit "tools/update game assemblies"
+5. git clone this repo (or download zip)
+6. drop into the unity mod folder, overwriting things
+7. hope stuff still works
 # license
 You're free to use this code as you please, but please don't just publish the same mod, unless I have abandoned it.
 I have a paid license for the preview sailor clipart images, but if you redistribute it, you have to give credit to Alice Noir, under CreativeCommons license.

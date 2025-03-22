@@ -12,6 +12,4 @@ MonoBehaviour:
   m_Script: {fileID: 1651638530, guid: aaeaace971825154b9e63cccd06929df, type: 3}
   m_Name: Manifest
   m_EditorClassIdentifier: 
-  containedAssets:
-  - path: Manifest
-    guid: 02b5f0ddccbaed9489eaafe7caec6900
+  containedAssets: []

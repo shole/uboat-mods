@@ -1,0 +1,12 @@
+{
+    "name": "Change Campaign Settings",
+    "version": "1.0",
+    "description": "Allow changing settings on a campaign save already in progress.\n\nWARNING: The game is clearly designed for these settings NOT to be changed once a campaign has been started. Changing them may cause unexpected bugs! Use at your own risk.\n\nSource for this mod is available here.\nhttps://github.com/shole/uboat-mods",
+    "author": "shole",
+    "supportedGameVersions": [
+        "2025.1"
+    ],
+    "assemblyName": "CampaignSettings",
+    "permissions": [],
+    "steamFileId": 3450170226
+}

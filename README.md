@@ -8,6 +8,7 @@ This repository contains the following mods:
 * No Fatigue - disables the fatigue feature from the game
 * No Discipline - disables the discipline feature from the game
 * No Discipline (Task Version) - same as above, implemented as a background task, for redundancy in case other fails
+* Change Campaign Settings - allows changing gameplay settings in a campaign savegame already in progress
 # usage
 1. using unity 2021.3.33f1
 2. create new unity mod from uboat launcher

@@ -1,0 +1,14 @@
+{
+	"name": "Interior Audio in Map View",
+	"version": "1.0",
+	"description": "\n\nSource for this mod is available here.\nhttps://github.com/shole/uboat-mods",
+	"author": "shole",
+	"supportedGameVersions": [
+		"2025.1"
+	],
+	"assemblyName": "ImmersiveMap",
+	"permissions": [
+		"Reflection"
+	],
+	"steamFileId": 0
+}

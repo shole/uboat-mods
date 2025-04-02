@@ -7,8 +7,6 @@
 		"2025.1"
 	],
 	"assemblyName": "ImmersiveMap",
-	"permissions": [
-		"Reflection"
-	],
+	"permissions": [],
 	"steamFileId": 0
 }

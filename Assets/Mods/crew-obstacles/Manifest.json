@@ -1,0 +1,12 @@
+{
+  "name": "Disable Crew Collisions",
+  "version": "1.0",
+  "description": "The crew tend to get stuck on each other while walking inside the already cramped quarters.\nThis mod disables crew blocking and allows characters (and player) to pass through each other.\nThis mod has been tested with 2025.1.1.\nThis mod works with existing savegames and does not alter game state.\n\nSource for this mod is available here.\nhttps://github.com/shole/uboat-mods",
+  "author": "shole",
+  "supportedGameVersions": [
+    "2025.1"
+  ],
+  "assemblyName": "CrewObstacles",
+  "permissions": [],
+  "steamFileId": 3456546812
+}

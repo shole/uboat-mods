@@ -1,12 +1,12 @@
 {
-	"name": "Interior Audio in Map View",
-	"version": "1.0",
-	"description": "Restores interior sounds to map view.\nPropeller sounds, depth charges and directional crew voices can be heard.\n\nIf you notice anything important missing, please let me know.\n\nThis mod has been tested with 2025.1.1.\nThis mod works with existing savegames and does not alter game state.\n\nSource for this mod is available here.\nhttps://github.com/shole/uboat-mods",
-	"author": "shole",
-	"supportedGameVersions": [
-		"2025.1"
-	],
-	"assemblyName": "ImmersiveMap",
-	"permissions": [],
-	"steamFileId": 0
+  "name": "Interior Audio in Map View",
+  "version": "1.0",
+  "description": "Restores interior sounds to map view.\nPropeller sounds, depth charges and directional crew voices can be heard.\n\nIf you notice anything important missing, please let me know.\n\nThis mod has been tested with 2025.1.1.\nThis mod works with existing savegames and does not alter game state.\n\nSource for this mod is available here.\nhttps://github.com/shole/uboat-mods",
+  "author": "shole",
+  "supportedGameVersions": [
+    "2025.1"
+  ],
+  "assemblyName": "ImmersiveMap",
+  "permissions": [],
+  "steamFileId": 3457014565
 }

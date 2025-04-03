@@ -59,7 +59,7 @@ namespace UBOAT.Mods.ImmersiveMap {
 				if ( playership == null || deepAudioListener == null || audioController == null || timeCompressionController == null || gameUI == null || navigationTable == null ) { // wait for ingame state
 					yield return new WaitForSecondsRealtime(1f);
 
-					Debug.Log("[ImmersiveMap]  ref");
+					// Debug.Log("[ImmersiveMap]  ref");
 
 					playership        = FindObjectOfType<PlayerShip>();
 					deepAudioListener = FindObjectOfType<DeepAudioListener>();
@@ -132,8 +132,12 @@ namespace UBOAT.Mods.ImmersiveMap {
 			// Debug.Log("EnteredMap - done");
 		}
 		void InMapUpdate() {
-			// deepAudioListener.transform.localPosition = new Vector3(0, .75f, 0); // center of compartment
-			deepAudioListener.transform.localPosition = new Vector3(0, 0.6f, navigationTable.transform.position.z);
+			// deepAudioListener.transform.localPosition = new Vector3(0, .75f, 0); // center of boat
+			deepAudioListener.transform.localPosition = new Vector3(
+				0,                                   // center-boat laterally
+				0.6f,                                // good sitting height
+				navigationTable.transform.position.z // navigation table position length wise
+			);
 
 			deepAudioListener.transform.localRotation = Quaternion.identity; // facing forward
 			// deepAudioListener.transform.localRotation = Quaternion.Euler(0, navigationTable.transform.localPosition.x > 0 ? 90 : -90, 0); // facing map (sideways)

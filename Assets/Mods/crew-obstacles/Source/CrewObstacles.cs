@@ -1,6 +1,7 @@
 using System.Collections;
 using UBOAT.Game.Core.Serialization;
 using UBOAT.Game.Scene.Characters;
+using UBOAT.Game.Scene.Characters.Navigation;
 using UBOAT.Game.Scene.Entities;
 using UnityEngine;
 
@@ -15,7 +16,7 @@ namespace UBOAT.Mods.CrewObstacles {
 		private Coroutine              updateCoroutine;
 
 		private void Start() {
-			waitForSeconds = new WaitForSecondsRealtime(0.5f);
+			waitForSeconds = new WaitForSecondsRealtime(0.3f);
 		}
 		void Update() {
 			if ( updateCoroutine == null || lastUpdate - Time.realtimeSinceStartup > 10f ) { // if coroutine timed out or missing, respawn
@@ -40,11 +41,20 @@ namespace UBOAT.Mods.CrewObstacles {
 					if ( playercrew.Characters != null ) {
 						foreach ( PlayableCharacter playercrewCharacter in playercrew.Characters ) {
 							// Debug.Log("PlayableCharacter " + playercrewCharacter.gameObject.name);
-							if ( playercrewCharacter && playercrewCharacter.Navigator && playercrewCharacter.Navigator.Obstacle ) {
-								playercrewCharacter.Navigator.Obstacle.radius  = 0;
-								playercrewCharacter.Navigator.Obstacle.height  = 0;
-								playercrewCharacter.Navigator.Obstacle.enabled = false;
+							if (
+								playercrewCharacter
+								&&
+								playercrewCharacter.Navigator
+								&&
+								(playercrewCharacter.Navigator.AgentMode == AgentMode.Obstacle || playercrewCharacter.Navigator.AgentMode == AgentMode.CarvedObstacle)
+							) {
+								playercrewCharacter.Navigator.AgentMode = AgentMode.Disabled;
 							}
+							// if ( playercrewCharacter && playercrewCharacter.Navigator && playercrewCharacter.Navigator.Obstacle ) {  // in case AgentMode.Disabled causes issues
+							// 	playercrewCharacter.Navigator.Obstacle.radius  = 0;
+							// 	playercrewCharacter.Navigator.Obstacle.height  = 0;
+							// 	playercrewCharacter.Navigator.Obstacle.enabled = false;
+							// }
 						}
 					}
 					yield return waitForSeconds;

@@ -9,6 +9,8 @@ This repository contains the following mods:
 * No Discipline - disables the discipline feature from the game
 * No Discipline (Task Version) - same as above, implemented as a background task, for redundancy in case other fails
 * Change Campaign Settings - allows changing gameplay settings - deprecated, an update made this mod unnecessary
+* Crew Obstacles - disable crew collisions inside the boat.
+* Immersive Map - enable interior audio on map screen
 # usage
 1. using unity 2021.3.33f1
 2. create new unity mod from uboat launcher

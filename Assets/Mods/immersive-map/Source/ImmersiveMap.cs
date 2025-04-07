@@ -1,4 +1,5 @@
 using DWS.Common.InjectionFramework;
+using System;
 using System.Collections;
 using UBOAT.Game.Core.Data;
 using UBOAT.Game.Core.Serialization;
@@ -15,11 +16,16 @@ using UnityEngine;
 namespace UBOAT.Mods.ImmersiveMap {
 	[NonSerializedInGameState]
 	public class ImmersiveMap : MonoBehaviour {
+		public static ImmersiveMap Instance;
+		private void Awake() {
+			Instance = this;
+		}
 		private float             lastUpdate = 0;
 		private PlayerShip        playership;
 		private DeepAudioListener deepAudioListener;
 		// private AudioController   audioController;
 		private TimeCompressionController timeCompressionController;
+		private SavesManager              savesManager;
 		private GameUI                    gameUI;
 
 		private NavigationTable navigationTable;
@@ -56,6 +62,12 @@ namespace UBOAT.Mods.ImmersiveMap {
 			}
 		}
 
+		void ResetScript() {
+			GameObject go = new GameObject("[ImmersiveMap]");
+			go.AddComponent<ImmersiveMap>();
+			GameObject.DontDestroyOnLoad(go);
+		}
+
 		private bool hasReferences => (
 			playership != null
 			&&
@@ -64,6 +76,8 @@ namespace UBOAT.Mods.ImmersiveMap {
 			// audioController != null
 			&&
 			timeCompressionController != null
+			// &&
+			// savesManager!=null
 			&&
 			gameUI != null
 			&&
@@ -80,6 +94,7 @@ namespace UBOAT.Mods.ImmersiveMap {
 				deepAudioListener = FindObjectOfType<DeepAudioListener>();
 				gameUI            = FindObjectOfType<GameUI>();
 				// audioController   = ScriptableObjectSingleton.LoadSingleton<AudioController>();
+
 
 				BackgroundTasksManager backgroundTasksManager = ScriptableObjectSingleton.LoadSingleton<BackgroundTasksManager>();
 				timeCompressionController = backgroundTasksManager?.GetRunningTask<TimeCompressionController>();
@@ -98,12 +113,6 @@ namespace UBOAT.Mods.ImmersiveMap {
 				// Debug.Log("ref audioController: " + audioController);
 				// Debug.Log("ref timeCompressionController: " + timeCompressionController);
 				// Debug.Log("ref navigationTable: " + navigationTable);
-
-				waterDrops = FindObjectOfType<WaterDropsEffect>()?.GetComponent<DeepAudioSource>();
-				if ( waterDrops != null ) {
-					waterDropsVolume = waterDrops.volumeMultiplier.AddScaleModifier("ImmersiveMapVolume");
-				}
-				// Debug.Log("dropsvolume "+waterDrops?.volume);
 
 				lastUpdate = Time.realtimeSinceStartup;
 				yield return null;
@@ -162,7 +171,7 @@ namespace UBOAT.Mods.ImmersiveMap {
 				// 	propellerEffect.GetComponent<AudioSource>().dopplerLevel = 1;
 				// }
 			}
-			// TimeCompressionChanged();
+			TimeCompressionChanged();
 			// Debug.Log("EnteredMap - done");
 		}
 		void InMapUpdate() {
@@ -193,9 +202,21 @@ namespace UBOAT.Mods.ImmersiveMap {
 			// Debug.Log("[ImmersiveMap] ExitedMap");
 		}
 		void TimeCompressionChanged() {
+			// Debug.Log("[ImmersiveMap] Time compression changed. inMapNow "+ inMapNow);
 			if ( inMapNow ) {
-				// Debug.Log("[ImmersiveMap] TimeCompressionChanged");
-				waterDropsVolume.Value = timeCompressionController.TimeCompression ? 0f : 0.5f; // annoying water dripping sound - MUTE on acceleration, half volume when not
+				if ( waterDrops == null ) {
+					waterDrops       = FindObjectOfType<WaterDropsEffect>()?.GetComponent<DeepAudioSource>();
+					waterDropsVolume = null;
+				}
+				// Debug.Log("[ImmersiveMap] Time compression changed. waterDrops "+ waterDrops);
+				if ( waterDrops != null && waterDropsVolume == null ) {
+					waterDropsVolume = waterDrops.volumeMultiplier.AddScaleModifier("ImmersiveMapVolume", false);
+				}
+				// Debug.Log("[ImmersiveMap] Time compression changed. waterDropsVolume "+ waterDropsVolume);
+				if ( waterDropsVolume != null ) {
+					waterDropsVolume.Value = (timeCompressionController.TimeCompression ? 0f : 0.5f);
+				}
+				// Debug.Log("[ImmersiveMap] Time compression changed. waterDropsVolume.Value "+ waterDropsVolume.Value);
 			}
 		}
 	}

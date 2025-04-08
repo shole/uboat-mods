@@ -95,7 +95,6 @@ namespace UBOAT.Mods.ImmersiveMap {
 				gameUI            = FindObjectOfType<GameUI>();
 				// audioController   = ScriptableObjectSingleton.LoadSingleton<AudioController>();
 
-
 				BackgroundTasksManager backgroundTasksManager = ScriptableObjectSingleton.LoadSingleton<BackgroundTasksManager>();
 				timeCompressionController = backgroundTasksManager?.GetRunningTask<TimeCompressionController>();
 				if ( timeCompressionController != null ) {
@@ -163,14 +162,6 @@ namespace UBOAT.Mods.ImmersiveMap {
 			// MainCamera.Instance.loadingUIController.FinalAudioMixerSnapshot = this.snapshots[this.isInsideBoat ? 0 : 1][0];
 
 			// Debug.Log("[ImmersiveMap] EnteredMap");
-			foreach ( PropellerEffects propellerEffect in FindObjectsOfType<PropellerEffects>(true) ) {
-				// Debug.Log("[ImmersiveMap] Activate propeller: " + propellerEffect.name);
-				propellerEffect.enabled = true;
-				// if ( propellerEffect.GetComponent<AudioSource>() ) {  // doppler not useful
-				// 	Debug.Log("propeller audiosource: " + propellerEffect.GetComponent<AudioSource>()?.gameObject.name);
-				// 	propellerEffect.GetComponent<AudioSource>().dopplerLevel = 1;
-				// }
-			}
 			TimeCompressionChanged();
 			// Debug.Log("EnteredMap - done");
 		}
@@ -217,6 +208,15 @@ namespace UBOAT.Mods.ImmersiveMap {
 					waterDropsVolume.Value = (timeCompressionController.TimeCompression ? 0f : 0.5f);
 				}
 				// Debug.Log("[ImmersiveMap] Time compression changed. waterDropsVolume.Value "+ waterDropsVolume.Value);
+
+				foreach ( PropellerEffects propellerEffect in FindObjectsOfType<PropellerEffects>(true) ) {
+					// Debug.Log("[ImmersiveMap] Activate propeller: " + propellerEffect.name);
+					propellerEffect.enabled = true;
+					// if ( propellerEffect.GetComponent<AudioSource>() ) {  // doppler not useful
+					// 	Debug.Log("propeller audiosource: " + propellerEffect.GetComponent<AudioSource>()?.gameObject.name);
+					// 	propellerEffect.GetComponent<AudioSource>().dopplerLevel = 1;
+					// }
+				}
 			}
 		}
 	}

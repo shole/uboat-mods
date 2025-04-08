@@ -18,8 +18,25 @@ namespace UBOAT.Mods.ImmersiveMap {
 	public class ImmersiveMap : MonoBehaviour {
 		public static ImmersiveMap Instance;
 		private void Awake() {
+			if ( Instance != null ) { // if already exists, kill old copy as outdated
+				Debug.Log("[ImmersiveMap] Restart!");
+				Destroy(Instance.gameObject);
+			}
 			Instance = this;
 		}
+
+		public static void Spawn() {
+			try {
+				GameObject go = new GameObject("[ImmersiveMap]");
+				go.AddComponent<ImmersiveMap>();
+				GameObject.DontDestroyOnLoad(go);
+				// Debug.LogFormat("{0} Loaded successfuly!", MODNAME);
+			} catch ( Exception e ) {
+				Debug.Log("[ImmersiveMap] Something is broken!");
+				Debug.LogException(e);
+			}
+		}
+
 		private float             lastUpdate = 0;
 		private PlayerShip        playership;
 		private DeepAudioListener deepAudioListener;
@@ -52,20 +69,15 @@ namespace UBOAT.Mods.ImmersiveMap {
 
 		private Coroutine updateCoroutine;
 
-		void Update() {
-			if ( updateCoroutine == null || lastUpdate - Time.realtimeSinceStartup > 10f ) { // if coroutine timed out or missing, respawn
-				if ( updateCoroutine != null ) {
-					StopCoroutine(updateCoroutine);
-				}
-				Debug.Log("[ImmersiveMap] Start..");
-				updateCoroutine = StartCoroutine(IUpdate());
-			}
+		void Start() {
+			Debug.Log("[ImmersiveMap] Start..");
+			updateCoroutine = StartCoroutine(IUpdate());
 		}
 
-		void ResetScript() {
-			GameObject go = new GameObject("[ImmersiveMap]");
-			go.AddComponent<ImmersiveMap>();
-			GameObject.DontDestroyOnLoad(go);
+		void Update() {
+			if ( updateCoroutine == null || lastUpdate - Time.realtimeSinceStartup > 10f ) { // if coroutine timed out or missing, respawn
+				Spawn();
+			}
 		}
 
 		private bool hasReferences => (

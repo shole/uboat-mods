@@ -1,0 +1,15 @@
+{
+  "name": "Allow Tonnage Before Patrol Area",
+  "version": "1.0",
+  "description": "So often I run into a convoy on my way to the patrol area, then reach it with no torpedoes remaining, and then I'm still expected to meet a new quota as I reach it.\nWith this mod tonnage sunk before reaching the patrol area is now counted toward your patrol tonnage.\n\nThis mod has been tested with 2025.1.1.\nThis mod works with existing savegames and does not alter game state.\n\nSource for this mod is available here.\nhttps://github.com/shole/uboat-mods",
+  "author": "shole",
+  "supportedGameVersions": [
+    "2025.1",
+    "2025.1.1"
+  ],
+  "assemblyName": "TonnageSunkBeforePatrolArea",
+  "permissions": [
+    "Reflection"
+  ],
+  "steamFileId": 3460665030
+}

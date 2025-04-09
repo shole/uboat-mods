@@ -11,6 +11,7 @@ This repository contains the following mods:
 * Change Campaign Settings - allows changing gameplay settings - deprecated, an update made this mod unnecessary
 * Crew Obstacles - disable crew collisions inside the boat.
 * Immersive Map - enable interior audio on map screen
+* Allow Tonnage Sunk Before Patrol Area
 # usage
 1. using unity 2021.3.33f1
 2. create new unity mod from uboat launcher

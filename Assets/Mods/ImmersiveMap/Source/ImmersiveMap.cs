@@ -47,8 +47,8 @@ namespace UBOAT.Mods.ImmersiveMap {
 
 		private NavigationTable navigationTable;
 
-		private DeepAudioSource waterDrops;
-		private Modifier        waterDropsVolume;
+		private Modifier waterDropsVolume;
+		private Modifier alarmVolume;
 
 		private bool inMapLastFrame = false; // were we on map last frame
 		private bool inMapNow {
@@ -106,6 +106,12 @@ namespace UBOAT.Mods.ImmersiveMap {
 				deepAudioListener = FindObjectOfType<DeepAudioListener>();
 				gameUI            = FindObjectOfType<GameUI>();
 				// audioController   = ScriptableObjectSingleton.LoadSingleton<AudioController>();
+				if ( alarmVolume == null ) {
+					alarmVolume = playership?.GetPrivateValue<DeepAudioSource>("alarmAudioSource")?.volumeMultiplier.AddScaleModifier("ImmersiveMapVolume", false);
+				}
+				if ( waterDropsVolume == null ) {
+					waterDropsVolume = FindObjectOfType<WaterDropsEffect>()?.GetComponent<DeepAudioSource>()?.volumeMultiplier.AddScaleModifier("ImmersiveMapVolume", false);
+				}
 
 				BackgroundTasksManager backgroundTasksManager = ScriptableObjectSingleton.LoadSingleton<BackgroundTasksManager>();
 				timeCompressionController = backgroundTasksManager?.GetRunningTask<TimeCompressionController>();
@@ -173,6 +179,10 @@ namespace UBOAT.Mods.ImmersiveMap {
 
 			// MainCamera.Instance.loadingUIController.FinalAudioMixerSnapshot = this.snapshots[this.isInsideBoat ? 0 : 1][0];
 
+			if ( alarmVolume != null ) {
+				alarmVolume.Value = 0.1f;
+			}
+
 			// Debug.Log("[ImmersiveMap] EnteredMap");
 			TimeCompressionChanged();
 			// Debug.Log("EnteredMap - done");
@@ -198,6 +208,11 @@ namespace UBOAT.Mods.ImmersiveMap {
 
 			MainCamera.Instance.IsAudioListener      = true;
 			MainCamera.Instance.ForceInsideBoatState = false;
+
+			if ( alarmVolume != null ) {
+				alarmVolume.Value = 1f;
+			}
+
 			// Debug.Log("ExitedMap - propellers");
 			// foreach ( PropellerEffects propellerEffectse in FindObjectsOfType<PropellerEffects>(true) ) { // disabling propellers might have negative effects elsewhere - assume other pages handle this their own way
 			// 	propellerEffectse.enabled = false;
@@ -207,15 +222,6 @@ namespace UBOAT.Mods.ImmersiveMap {
 		void TimeCompressionChanged() {
 			// Debug.Log("[ImmersiveMap] Time compression changed. inMapNow "+ inMapNow);
 			if ( inMapNow ) {
-				if ( waterDrops == null ) {
-					waterDrops       = FindObjectOfType<WaterDropsEffect>()?.GetComponent<DeepAudioSource>();
-					waterDropsVolume = null;
-				}
-				// Debug.Log("[ImmersiveMap] Time compression changed. waterDrops "+ waterDrops);
-				if ( waterDrops != null && waterDropsVolume == null ) {
-					waterDropsVolume = waterDrops.volumeMultiplier.AddScaleModifier("ImmersiveMapVolume", false);
-				}
-				// Debug.Log("[ImmersiveMap] Time compression changed. waterDropsVolume "+ waterDropsVolume);
 				if ( waterDropsVolume != null ) {
 					waterDropsVolume.Value = (timeCompressionController.TimeCompression ? 0f : 0.5f);
 				}

@@ -1,6 +1,6 @@
 {
 	"name": "Interior Audio in Map View",
-	"version": "1.0",
+	"version": "1.1",
 	"description": "Restores interior sounds to map view.\nPropeller sounds, depth charges and directional crew voices can be heard.\n\nReduced map water drop sound to 50% and muted in time acceleration.\nReduced map alarm volume to 10%\n\nIf you notice anything important missing, please let me know.\n\nThis mod has been tested with 2025.1.1.\nThis mod works with existing savegames and does not alter game state.\n\nSource for this mod is available here.\nhttps://github.com/shole/uboat-mods",
 	"author": "shole",
 	"supportedGameVersions": [

@@ -164,7 +164,7 @@ namespace UBOAT.Mods.ImmersiveMap {
 			// deepAudioListener.SetPrivateValue("interiorLevel", 1f);
 
 			MainCamera.Instance.IsAudioListener      = false;
-			MainCamera.Instance.ForceInsideBoatState = true;
+			// MainCamera.Instance.ForceInsideBoatState = true;  // do not use - can cause unknown behavior (eg. breaks mission markers)
 			// MainCamera.Instance.ResetDopplerEffect();  // doppler not useful
 
 			// audioController.SetFullscreenInterfaceMode(false);
@@ -207,7 +207,7 @@ namespace UBOAT.Mods.ImmersiveMap {
 			deepAudioListener.SubmergeLevel = 0f;
 
 			MainCamera.Instance.IsAudioListener      = true;
-			MainCamera.Instance.ForceInsideBoatState = false;
+			// MainCamera.Instance.ForceInsideBoatState = false;
 
 			if ( alarmVolume != null ) {
 				alarmVolume.Value = 1f;

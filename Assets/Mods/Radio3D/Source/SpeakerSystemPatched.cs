@@ -5,17 +5,23 @@ using UBOAT.Game.Scene.Audio;
 using UBOAT.Game.Scene.Camera;
 using UBOAT.Game.Scene.Entities;
 using UBOAT.Game.Scene.Items;
-using UBOAT.Game.Scene.Spaces;
 using UnityEngine;
 
 namespace UBOAT.Mods.Radio3D {
-	class SpakerSystemPatched {
+	class SpeakerSystemPatched {
 		[HarmonyPatch(typeof(SpeakerSystem), "Update")]
 		class PatrolAssignmentOnStageStarted {
 			private static float             minDistance = 15f;
 			private static float             maxDistance = 25f;
 			private static DeepAudioListener _listener;
-			private static DeepAudioListener listener => _listener ??= GameObject.FindObjectOfType<DeepAudioListener>();
+			private static DeepAudioListener listener {
+				get {
+					if ( _listener == null ) {
+						_listener = GameObject.FindObjectOfType<DeepAudioListener>();
+					}
+					return _listener;
+				}
+			}
 			// private static PlayerShipInterior _playerShipInterior;
 			// private static PlayerShipInterior playerShipInterior => _playerShipInterior ??= GameObject.FindObjectOfType<PlayerShipInterior>();
 			private static Modifier speakerVolumeModifier;

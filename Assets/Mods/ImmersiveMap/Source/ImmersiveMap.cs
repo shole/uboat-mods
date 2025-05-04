@@ -39,6 +39,7 @@ namespace UBOAT.Mods.ImmersiveMap {
 
 		private float             lastUpdate = 0;
 		private PlayerShip        playership;
+		private string            lastPlayershipType;
 		private DeepAudioListener deepAudioListener;
 		// private AudioController   audioController;
 		private TimeCompressionController timeCompressionController;
@@ -47,8 +48,12 @@ namespace UBOAT.Mods.ImmersiveMap {
 
 		private NavigationTable navigationTable;
 
-		private Modifier waterDropsVolume;
-		private Modifier alarmVolume;
+		private float           waterDropsTargetVolume = 0.5f;
+		private DeepAudioSource waterDropsAudioSource;
+		private Modifier        waterDropsVolume;
+
+		private DeepAudioSource alarmAudioSource;
+		private Modifier        alarmVolume;
 
 		private bool inMapLastFrame = false; // were we on map last frame
 		private bool inMapNow {
@@ -83,6 +88,8 @@ namespace UBOAT.Mods.ImmersiveMap {
 		private bool hasReferences => (
 			playership != null
 			&&
+			playership.Blueprint.Type.Name == lastPlayershipType // has ship changed?
+			&&
 			deepAudioListener != null
 			// &&
 			// audioController != null
@@ -102,16 +109,18 @@ namespace UBOAT.Mods.ImmersiveMap {
 
 				// Debug.Log("[ImmersiveMap]  Getting references ref");
 
-				playership        = FindObjectOfType<PlayerShip>();
+				playership = FindObjectOfType<PlayerShip>();
+				if ( playership != null ) {
+					lastPlayershipType     = playership.Blueprint.Type.Name;
+					waterDropsTargetVolume = 0.5f;                           // half volume
+					if ( playership.Blueprint.Type.Name.Contains("VIIC") ) { // half again because VIIC is louder/closer to map
+						waterDropsTargetVolume *= 0.5f;
+					}
+					// waterDropsTargetVolume *= .33f; // lower because of minimum range increase (this value derived with fair guesstimation)
+				}
 				deepAudioListener = FindObjectOfType<DeepAudioListener>();
 				gameUI            = FindObjectOfType<GameUI>();
 				// audioController   = ScriptableObjectSingleton.LoadSingleton<AudioController>();
-				if ( alarmVolume == null ) {
-					alarmVolume = playership?.GetPrivateValue<DeepAudioSource>("alarmAudioSource")?.volumeMultiplier.AddScaleModifier("ImmersiveMapVolume", false);
-				}
-				if ( waterDropsVolume == null ) {
-					waterDropsVolume = FindObjectOfType<WaterDropsEffect>()?.GetComponent<DeepAudioSource>()?.volumeMultiplier.AddScaleModifier("ImmersiveMapVolume", false);
-				}
 
 				BackgroundTasksManager backgroundTasksManager = ScriptableObjectSingleton.LoadSingleton<BackgroundTasksManager>();
 				timeCompressionController = backgroundTasksManager?.GetRunningTask<TimeCompressionController>();
@@ -155,6 +164,7 @@ namespace UBOAT.Mods.ImmersiveMap {
 		}
 
 		void EnteredMap() {
+			// Debug.Log("[ImmersiveMap] EnteredMap");
 			deepAudioListener.IsBelowWater = playership.Depth > 1;
 			deepAudioListener.IsInsideBoat = true;
 			deepAudioListener.Compartment  = playership.Interior.CentralCompartment;
@@ -163,7 +173,7 @@ namespace UBOAT.Mods.ImmersiveMap {
 			deepAudioListener.SubmergeLevel = 1f;
 			// deepAudioListener.SetPrivateValue("interiorLevel", 1f);
 
-			MainCamera.Instance.IsAudioListener      = false;
+			MainCamera.Instance.IsAudioListener = false;
 			// MainCamera.Instance.ForceInsideBoatState = true;  // do not use - can cause unknown behavior (eg. breaks mission markers)
 			// MainCamera.Instance.ResetDopplerEffect();  // doppler not useful
 
@@ -179,13 +189,27 @@ namespace UBOAT.Mods.ImmersiveMap {
 
 			// MainCamera.Instance.loadingUIController.FinalAudioMixerSnapshot = this.snapshots[this.isInsideBoat ? 0 : 1][0];
 
+			if ( waterDropsAudioSource == null ) {
+				waterDropsAudioSource = FindObjectOfType<WaterDropsEffect>()?.GetComponent<DeepAudioSource>();
+				waterDropsVolume      = null;
+			}
+			if ( waterDropsVolume == null && waterDropsAudioSource != null ) {
+				// waterDropsAudioSource.minDistance = 1f; // min distance for consistency
+				waterDropsVolume = waterDropsAudioSource.volumeMultiplier.AddScaleModifier("ImmersiveMapVolume", false);
+			}
+
+			if ( alarmAudioSource == null ) {
+				alarmAudioSource = playership?.GetPrivateValue<DeepAudioSource>("alarmAudioSource");
+				alarmVolume      = null;
+			}
+			if ( alarmVolume == null && alarmAudioSource != null ) {
+				alarmVolume = alarmAudioSource.volumeMultiplier.AddScaleModifier("ImmersiveMapVolume", false);
+			}
 			if ( alarmVolume != null ) {
 				alarmVolume.Value = 0.1f;
 			}
 
-			// Debug.Log("[ImmersiveMap] EnteredMap");
 			TimeCompressionChanged();
-			// Debug.Log("EnteredMap - done");
 		}
 		void InMapUpdate() {
 			// deepAudioListener.transform.localPosition = new Vector3(0, .75f, 0); // center of boat
@@ -197,8 +221,6 @@ namespace UBOAT.Mods.ImmersiveMap {
 
 			deepAudioListener.transform.localRotation = Quaternion.identity; // facing forward
 			// deepAudioListener.transform.localRotation = Quaternion.Euler(0, navigationTable.transform.localPosition.x > 0 ? 90 : -90, 0); // facing map (sideways)
-
-			// waterDrops.volume = timeCompressionController.TimeCompression ? 0f : 0.5f; // annoying water dripping sound - MUTE on acceleration, half volume when not
 		}
 		void ExitedMap() {
 			deepAudioListener.IsBelowWater  = false;
@@ -206,7 +228,7 @@ namespace UBOAT.Mods.ImmersiveMap {
 			deepAudioListener.Compartment   = null;
 			deepAudioListener.SubmergeLevel = 0f;
 
-			MainCamera.Instance.IsAudioListener      = true;
+			MainCamera.Instance.IsAudioListener = true;
 			// MainCamera.Instance.ForceInsideBoatState = false;
 
 			if ( alarmVolume != null ) {
@@ -222,8 +244,8 @@ namespace UBOAT.Mods.ImmersiveMap {
 		void TimeCompressionChanged() {
 			// Debug.Log("[ImmersiveMap] Time compression changed. inMapNow "+ inMapNow);
 			if ( inMapNow ) {
-				if ( waterDropsVolume != null ) {
-					waterDropsVolume.Value = (timeCompressionController.TimeCompression ? 0f : 0.5f);
+				if ( waterDropsVolume != null && waterDropsAudioSource != null ) {
+					waterDropsVolume.Value = (timeCompressionController.TimeCompression ? 0f : waterDropsTargetVolume);
 				}
 				// Debug.Log("[ImmersiveMap] Time compression changed. waterDropsVolume.Value "+ waterDropsVolume.Value);
 

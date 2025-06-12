@@ -27,6 +27,10 @@ namespace UBOAT.Mods.ImmersiveMap {
 
 		public static void Spawn() {
 			try {
+				ImmersiveMap oldMap = FindObjectOfType<ImmersiveMap>();
+				if ( oldMap != null ) {
+					Destroy(oldMap.gameObject);
+				}
 				GameObject go = new GameObject("[ImmersiveMap]");
 				go.AddComponent<ImmersiveMap>();
 				GameObject.DontDestroyOnLoad(go);
@@ -112,8 +116,8 @@ namespace UBOAT.Mods.ImmersiveMap {
 				playership = FindObjectOfType<PlayerShip>();
 				if ( playership != null ) {
 					lastPlayershipType     = playership.Blueprint.Type.Name;
-					waterDropsTargetVolume = 0.5f;                           // half volume
-					if ( playership.Blueprint.Type.Name.Contains("VIIC") ) { // half again because VIIC is louder/closer to map
+					waterDropsTargetVolume = 0.5f;               // half volume
+					if ( lastPlayershipType.Contains("VIIC") ) { // half again because VIIC is louder/closer to map
 						waterDropsTargetVolume *= 0.5f;
 					}
 					// waterDropsTargetVolume *= .33f; // lower because of minimum range increase (this value derived with fair guesstimation)
@@ -160,6 +164,15 @@ namespace UBOAT.Mods.ImmersiveMap {
 
 				lastUpdate     = Time.realtimeSinceStartup;
 				inMapLastFrame = inMapNow;
+
+				// Debug.Log("[gameUI.CurrentMode] " + gameUI.CurrentMode);
+				// Debug.Log("[MainCamera.Instance.CurrentMode] " + MainCamera.Instance.CurrentMode);
+				// Debug.Log("[deepAudioListener.IsBelowWater] " + deepAudioListener.IsBelowWater);
+				// Debug.Log("[deepAudioListener.IsInsideBoat] " + deepAudioListener.IsInsideBoat);
+				// Debug.Log("[deepAudioListener.Compartment] " + deepAudioListener.Compartment);
+				// Debug.Log("[deepAudioListener.SubmergeLevel] " + deepAudioListener.SubmergeLevel);
+				// Debug.Log("[MainCamera.Instance.IsAudioListener] " + MainCamera.Instance.IsAudioListener);
+				// yield return new WaitForSeconds(1f);
 			}
 		}
 
@@ -223,12 +236,19 @@ namespace UBOAT.Mods.ImmersiveMap {
 			// deepAudioListener.transform.localRotation = Quaternion.Euler(0, navigationTable.transform.localPosition.x > 0 ? 90 : -90, 0); // facing map (sideways)
 		}
 		void ExitedMap() {
-			deepAudioListener.IsBelowWater  = false;
-			deepAudioListener.IsInsideBoat  = false;
-			deepAudioListener.Compartment   = null;
-			deepAudioListener.SubmergeLevel = 0f;
+			if ( gameUI.CurrentMode == GameUI.Mode.DeviceManualMode ) { // hydrophone or other device
+				deepAudioListener.IsBelowWater  = true;
+				deepAudioListener.IsInsideBoat  = false;
+				deepAudioListener.Compartment   = null;
+				deepAudioListener.SubmergeLevel = 1f;
+			} else {
+				deepAudioListener.IsBelowWater  = false;
+				deepAudioListener.IsInsideBoat  = false;
+				deepAudioListener.Compartment   = null;
+				deepAudioListener.SubmergeLevel = 0f;
 
-			MainCamera.Instance.IsAudioListener = true;
+				MainCamera.Instance.IsAudioListener = true;
+			}
 			// MainCamera.Instance.ForceInsideBoatState = false;
 
 			if ( alarmVolume != null ) {

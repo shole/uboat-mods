@@ -161,10 +161,10 @@ namespace UBOAT.Mods.ImmersiveMap {
 
 
 		IEnumerator IGetReferences() {
-			while ( !hasReferences ) {
 #if DEBUGMAPSTEPS
-				Debug.Log("[ImmersiveMap]  Getting references");
+			Debug.Log("[ImmersiveMap]  Getting references");
 #endif
+			while ( !hasReferences ) {
 				yield return new WaitForSecondsRealtime(1f);
 
 				playership = FindObjectOfType<PlayerShip>();
@@ -196,7 +196,7 @@ namespace UBOAT.Mods.ImmersiveMap {
 				Debug.Log("ref playership: " + playership);
 				Debug.Log("ref deepAudioListener: " + deepAudioListener);
 				Debug.Log("ref gameUI: " + gameUI);
-				Debug.Log("ref persicopeUI: " + persicopeUI);
+				Debug.Log("ref persicopeUI: " + periscopeUI);
 				// Debug.Log("ref audioController: " + audioController);
 				Debug.Log("ref timeCompressionController: " + timeCompressionController);
 				Debug.Log("ref navigationTable: " + navigationTable);

@@ -411,6 +411,7 @@ namespace UBOAT.Editor.ModdingTools
 				{
 					string targetModDir = targetModsDir + modName;
 
+					Debug.Log(projectModDir);
 					UpdateProjectJson(projectModDir, targetModDir);
 
 					if (Directory.Exists(targetModDir))
@@ -440,6 +441,7 @@ namespace UBOAT.Editor.ModdingTools
 
 				if (targetManifest.steamFileId != 0)
 				{
+					Debug.Log(projectModDir);
 					string projectJson = File.ReadAllText(projectJsonPath);
 					var projectManifest = JsonUtility.FromJson<ModManager.ModManifest>(projectJson);
 

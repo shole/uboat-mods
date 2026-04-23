@@ -13,6 +13,7 @@ using UnityEditorInternal;
 using UnityEditor;
 using UnityEditor.Build.Pipeline;
 using UnityEngine;
+using Debug = UnityEngine.Debug;
 using Object = System.Object;
 
 namespace UBOAT.Editor.ModdingTools
@@ -427,8 +428,15 @@ namespace UBOAT.Editor.ModdingTools
 
 			if (File.Exists(targetJsonPath) && File.Exists(projectJsonPath))
 			{
-				string targetJson = File.ReadAllText(targetJsonPath);
-				var targetManifest = JsonUtility.FromJson<ModManager.ModManifest>(targetJson);
+				string                 targetJson     = File.ReadAllText(targetJsonPath);
+				ModManager.ModManifest targetManifest;
+				try {
+					targetManifest = JsonUtility.FromJson<ModManager.ModManifest>(targetJson);
+				} catch ( Exception e ) {
+					Debug.LogError(e);
+					Debug.LogError(targetJson);
+					return;
+				}
 
 				if (targetManifest.steamFileId != 0)
 				{
@@ -481,7 +489,7 @@ namespace UBOAT.Editor.ModdingTools
 						string alphanumericModName = Regex.Replace(modName, "[^A-Za-z0-9 _\\-]", "");
 						string compiledDllPath = "Library/ScriptAssemblies/" + alphanumericModName + ".dll";
 						string compiledMdbPath = "Library/ScriptAssemblies/" + alphanumericModName + ".dll.mdb";
-
+						Debug.Log("compiledDllPath " + compiledDllPath);
 						if (File.Exists(compiledDllPath))
 						{
 							string targetDllPath = targetAssembliesDir + alphanumericModName + ".dll";

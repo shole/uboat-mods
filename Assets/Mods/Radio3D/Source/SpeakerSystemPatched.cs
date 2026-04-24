@@ -43,29 +43,35 @@ namespace UBOAT.Mods.Radio3D {
 							speakerDistance            = Mathf.Min(speakerDistance, Vector3.Distance(listener.transform.position, ___speakers[i].UnityAudioSource.transform.position));
 						}
 						float fadeValue = Mathf.InverseLerp(minDistance, maxDistance, speakerDistance);
-
-						// Debug.Log("speaker distance: " + speakerDistance);
 						DeepAudioSource deepAudioSource = ___speakers[0];
-						// deepAudioSource2.outputAudioMixerGroup  = Globals.Instance.MusicAudioMixerGroup;
-						deepAudioSource.spatialBlend           = 1f - fadeValue; // fade to 2D at distance
-						deepAudioSource.ignoreGlobalPitchScale = true;
+						deepAudioSource.spatialBlend = Mathf.Lerp( // fade to 2D at distance
+							0.9f,                                  // never fully 3d when near
+							0.0f,                                  // fully 2d
+							fadeValue);
 						// deepAudioSource2.volume                 = 0.2f;
 						if ( speakerVolumeModifier == null || !deepAudioSource.volumeMultiplier.ScaleModifiers.Contains(speakerVolumeModifier) ) {
 							speakerVolumeModifier = deepAudioSource.volumeMultiplier.AddScaleModifier("Radio3DVolume");
 						}
 						if ( speakerVolumeModifier != null ) {
-							speakerVolumeModifier.Value = Mathf.Lerp(1f, 0.2f, fadeValue); // fade volume at distance
+							speakerVolumeModifier.Value = Mathf.Lerp(1f, 0.3f, fadeValue); // fade volume at distance
 						}
 					} else {
 						if ( speakerVolumeModifier != null ) { // when NOT in 3d view, reset volume multiplier
 							speakerVolumeModifier.Value = 1f;
 						}
-						if ( ___mainCamera.CurrentMode == CameraMode.Map ) { // on map view
-							DeepAudioSource deepAudioSource = ___speakers[0];
-							deepAudioSource.outputAudioMixerGroup = Globals.Instance.InteriorAudioMixerGroup; // interior mixer not affected by "music volume" slider
-							deepAudioSource.spatialBlend          = 0f;                                       // 2D audio
-							// deepAudioSource.volume                 = .5f;                                       // volume (vanilla 0.2f)
-							deepAudioSource.ignoreGlobalPitchScale = true;
+						if ( ___mainCamera.CurrentMode == CameraMode.Map ) {                                      // on map view
+							for ( int i = 0; i < ___speakers.Length; i++ ) {                                      // map loads first so these are practically the default for all
+								___speakers[i].minDistance            = 1f;                                       // speaker near distance
+								___speakers[i].outputAudioMixerGroup  = Globals.Instance.InteriorAudioMixerGroup; // interior mixer not affected by "music volume" slider
+								___speakers[i].spatialBlend           = 0f;                                       // 2D audio
+								___speakers[i].ignoreGlobalPitchScale = true;
+								___speakers[i].dopplerLevel           = 0;
+							}
+						} else if ( ___mainCamera.CurrentMode == CameraMode.FPP ) { // in first person
+							for ( int i = 0; i < ___speakers.Length; i++ ) {
+								// ___speakers[i].minDistance  = 1.0f; // speaker near distance
+								___speakers[i].spatialBlend = 0.9f; // never fully 3d when near
+							}
 						}
 					}
 				}

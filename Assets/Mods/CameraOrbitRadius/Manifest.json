@@ -1,0 +1,14 @@
+{
+    "name": "Wider Camera Orbit",
+    "version": "1.0",
+    "description": "This mod extends the 3D orbit camera maximum distance to 250 meters. (normally 38m)\n\nThis mod has been tested with 2026.1.\nThis mod works with existing savegames and does not alter game state.\n\nSource for this mod is available here.\nhttps://github.com/shole/uboat-mods",
+    "author": "shole",
+    "supportedGameVersions": [
+        "2026.1"
+    ],
+    "assemblyName": "CameraOrbitRadius",
+    "permissions": [
+        "Reflection"
+    ],
+    "steamFileId": 3713456176
+}

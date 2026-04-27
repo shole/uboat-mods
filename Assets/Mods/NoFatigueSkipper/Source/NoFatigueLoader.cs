@@ -6,10 +6,10 @@ using UnityEngine;
 using UBOAT.Game;
 using UBOAT.Game.Core.Serialization;
 
-namespace UBOAT.Mods.NoFatigue {
+namespace UBOAT.Mods.NoFatigueSkipper {
 	[NonSerializedInGameState]
 	public class NoFatigueLoader : IUserMod {
-		public static readonly string MODNAME = "[NoFatigue]";
+		public static readonly string MODNAME = "[NoFatigueSkipper]";
 
 		public void OnLoaded() {
 			try {

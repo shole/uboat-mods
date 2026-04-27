@@ -1,5 +1,5 @@
 // debug messages for state changes and method calls
-#define DEBUGMAPSTEPS
+//#define DEBUGMAPSTEPS
 // debug messages for actions that change something
 // #define DEBUGMAPACTIONS
 // debug messages that spam every frame
